@@ -1,0 +1,29 @@
+{
+  "model_type": "sologpt",
+  "architectures": [
+    "SoloGPTModel"
+  ],
+  "vocab_size": 50257,
+  "n_embd": 1024,
+  "n_layer": 8,
+  "n_head": 8,
+  "n_positions": 512,
+  "dropout": 0.15,
+  "device": "cuda",
+  "batch_size": 32,
+  "seq_length": 512,
+  "learning_rate": 5e-05,
+  "weight_decay": 0.01,
+  "patience": 5,
+  "train_max_samples": null,
+  "val_max_samples": null,
+  "num_workers": 4,
+  "pin_memory": true,
+  "temperature": 0.9,
+  "k": 40,
+  "output_len": 500,
+  "prompt": "Arizona is a state in",
+  "training": {
+    "total_tokens": 9031980032
+  }
+}

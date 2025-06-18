@@ -1,0 +1,14 @@
+# Ignore checkpoints
+checkpoints/
+outputs/
+
+# Ignore Data
+data/
+
+# PyTorch
+*.pth
+*.pt
+
+# Cache
+__pycache__/
+*.log

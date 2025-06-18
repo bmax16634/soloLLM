@@ -1,0 +1,10 @@
+tqdm
+tiktoken
+datasets
+transformers
+
+# Pinned to PyTorch CUDA 11.8 wheels
+-f https://download.pytorch.org/whl/cu118
+torch
+torchvision
+torchaudio
