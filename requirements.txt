@@ -2,6 +2,7 @@ tqdm
 tiktoken
 datasets
 transformers
+streamlit
 
 # Pinned to PyTorch CUDA 11.8 wheels
 -f https://download.pytorch.org/whl/cu118

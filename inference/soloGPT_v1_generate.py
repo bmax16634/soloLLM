@@ -1,23 +1,32 @@
 import torch
 import json
-from model import CustomDecoderGPT
+from models.soloGPT_v1_model import SoloGPT_v1
 import tiktoken
 
 # ==== Load Config ====
-with open("config.json", "r") as f:
+with open("config/soloGPT_v1_config.json", "r") as f:
     config = json.load(f)
 
-device = torch.device(config["general"].get("device", "cuda") if torch.cuda.is_available() else "cpu")
-model_cfg = config["model"]
-infer_cfg = config["inference"]
-save_path = config["general"]["save_path"]
+
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+elif torch.backends.mps.is_available():
+    device = torch.device("mps")
+else:
+    device = torch.device("cpu")
+
+#infer_cfg = config["inference"]
+prompt = config['prompt']
+k = config['k']
+temp = config['temperature']
+out_len = config['output_len']
+save_path = 'outputs/pytorch_model.bin'
 
 # ==== Load tokenizer ====
 tokenizer = tiktoken.get_encoding("gpt2")
-model_cfg["vocab_size"] = tokenizer.n_vocab  # Update vocab size in config just in case
 
 # ==== Load model ====
-model = CustomDecoderGPT(config).to(device)
+model = SoloGPT_v1(config).to(device)
 model.load_state_dict(torch.load(save_path, map_location=device))
 model.eval()
 
@@ -44,8 +53,8 @@ def generate(prompt, max_new_tokens=100, temperature=1.0, top_k=40):
 # ==== Run ====
 if __name__ == "__main__":
     print(generate(
-        prompt=infer_cfg.get("prompt", "The universe"),
-        max_new_tokens=infer_cfg.get("output_len", 100),
-        temperature=infer_cfg.get("temperature", 1.0),
-        top_k=infer_cfg.get("k", 40)
+        prompt=(prompt, "The universe"),
+        max_new_tokens=(out_len, 100),
+        temperature=(temp, 1.0),
+        top_k=(k, 40)
     ))

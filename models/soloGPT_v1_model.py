@@ -10,14 +10,22 @@ class SoloGPT_v1(nn.Module):
         super().__init__()
         self.model_type = 'Transformer'
 
-        self.device = config['general']['device']
-        self.batch_size = config['training']['batch_size']
-        self.seq_length = config['training']['seq_length']
-        self.embed_dim = config['model']['embed_dim']
-        self.n_head = config['model']['n_head']
-        self.n_layers = config['model']['n_layers']
-        self.dropout = config['model']["dropout"]
-        self.vocab_size = config['model']['vocab_size']
+        if torch.cuda.is_available():
+            self.device = torch.device("cuda")
+        elif torch.backends.mps.is_available():
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
+            
+
+        #self.batch_size = config['training']['batch_size']
+        #self.seq_length = config['training']['seq_length']
+        self.embed_dim = config['n_embd']
+        
+        self.n_head = config['n_head']
+        self.n_layers = config['n_layer']
+        self.dropout = config["dropout"]
+        self.vocab_size = config['vocab_size']
 
         self.input_embed = nn.Embedding(self.vocab_size, self.embed_dim)
         self.pos_encoder = PositionalEncoding(self.embed_dim, self.dropout)
