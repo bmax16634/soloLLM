@@ -32,7 +32,7 @@ model.eval()
 
 # ==== Generation Function ====
 @torch.no_grad()
-def generate(prompt, max_new_tokens=100, temperature=1.0, top_k=40):
+def generate(prompt:str, max_new_tokens:int=100, temperature:float=1.0, top_k:int=40) -> str:
     input_ids = torch.tensor([tokenizer.encode(prompt)], dtype=torch.long).to(device)
     generated = input_ids
 
