@@ -1,8 +1,11 @@
 import streamlit as st
+from pathlib import Path
 from inference.soloGPT_v1_generate import generate
-
-
 import base64
+
+# ─── two levels up from this file ───
+BASE = Path(__file__).resolve().parent.parent
+logo_path = BASE / "assets" / "soloLLM2.png"
 
 def get_base64_of_bin_file(bin_file):
     with open(bin_file, "rb") as f:
@@ -12,7 +15,6 @@ def get_base64_of_bin_file(bin_file):
 st.set_page_config(page_title="SoloLLM Generator", layout="centered")
 
 # === HEADER with vertical alignment ===
-logo_path = "assets/soloLLM2.png"
 logo_width = 150
 logo_base64 = get_base64_of_bin_file(logo_path)
 
