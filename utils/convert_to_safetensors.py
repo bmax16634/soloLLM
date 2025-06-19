@@ -2,11 +2,6 @@ from safetensors.torch import save_file
 import torch, sys
 
 
-
-
-
-
-
 def convert_model(path:str) -> None:
     model = torch.load(path + ".bin", map_location="cpu")
     save_file(model, path + ".safetensors")
