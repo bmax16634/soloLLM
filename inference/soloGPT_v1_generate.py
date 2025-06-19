@@ -4,9 +4,14 @@ import torch
 import tiktoken
 from models.soloGPT_v1_model import SoloGPT_v1
 from safetensors.torch import load_file
+from pathlib import Path
+
+# ─── two levels up from this file ───
+BASE = Path(__file__).resolve().parent.parent
+cfg_file = BASE / "config" / "soloGPT_v1_config.json"
 
 # ==== Load Config ====
-with open("config/soloGPT_v1_config.json", "r") as f:
+with open(cfg_file, "r") as f:
     config = json.load(f)
 
 # ==== Select device ====
