@@ -27,7 +27,7 @@ base_prompt   = config.get("prompt", "").strip() or "The universe"
 max_new_tokens = config.get("output_len", 100)
 temperature    = config.get("temperature", 1.0)
 top_k          = config.get("k", 40)
-save_path      = "outputs/pytorch_model.safetensors"  # or .pth / .safetensors
+save_path      = BASE / "outputs" / "pytorch_model.safetensors"  # or .pth / .safetensors
 
 # ==== Load tokenizer ====
 tokenizer = tiktoken.get_encoding("gpt2")
