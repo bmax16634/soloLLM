@@ -4,8 +4,7 @@ from inference.soloGPT_v1_generate import generate
 import base64
 
 # ─── two levels up from this file ───
-BASE = Path(__file__).resolve().parent.parent
-logo_path = BASE / "assets" / "soloLLM2.png"
+logo_path = Path("assets/soloLLM2.png")
 
 def get_base64_of_bin_file(bin_file):
     with open(bin_file, "rb") as f:
