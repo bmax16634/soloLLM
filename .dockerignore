@@ -1,0 +1,35 @@
+# 1. Ignore everything by default
+**
+
+# 2. Re-include the few top-level files and dirs we need
+!Dockerfile
+!requirements.txt
+!app.py
+
+# 3. Re-include the inference code and its parent dir
+!inference/
+!inference/generate.py
+
+# 4. Re-include the config and its parent dir
+!config/
+!config/soloGPT_v1_config.json
+
+# 5. Re-include your model class (so imports work) and its parent dir
+!models/
+!models/soloGPT_v1_model.py
+
+!outputs/
+!outputs/pytorch_model.bin
+
+!assets/
+!assets/soloLLM2.png
+!assets/soloLLM.png
+
+
+# 6. Exclude all other heavyweight folders and extensions
+train/
+data/
+
+models/checkpoints/
+.kaggle/
+*.pt
