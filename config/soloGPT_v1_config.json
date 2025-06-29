@@ -22,7 +22,7 @@
   "temperature": 0.9,
   "k": 40,
   "output_len": 500,
-  "prompt": "Arizona is a state in",
+  "prompt": "Where is Phoenix located?",
   "training": {
     "total_tokens": 9031980032
   }
