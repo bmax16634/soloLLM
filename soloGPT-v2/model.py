@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class SoloGPT_v1(nn.Module):
+class SoloGPT_v2(nn.Module):
     def __init__(self, config: dict) -> None:
         super().__init__()
         self.model_type = "Transformer"

@@ -6,29 +6,30 @@ from glob import glob
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
-from models.soloGPT_v1_model import SoloGPT_v1
 from tqdm import tqdm
+
+from .model import SoloGPT_v1
 
 # ---------- Config & Setup ----------
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-with open("config/soloGPT_v1_config.json") as f:
+with open("./soloGPT-v1/config.json") as f:
     config = json.load(f)
 
-device = torch.device(config["general"].get("device", "cuda") if torch.cuda.is_available() else "cpu")
-save_path = config["general"].get("save_path", "pretrained_model.pth")
-shard_dir = config["general"].get("shard_dir", "tokenized_chunks")
-val_path = config["general"].get("val_path")  # Optional
+device = torch.device(config.get("device", "cuda") if torch.cuda.is_available() else "cpu")
+save_path = config.get("save_path", "pretrained_model.pth")
+shard_dir = './data/tokenized_chunks'
+val_path = config.get("val_path")  # Optional
 
-batch_size = config["training"]["batch_size"]
-learning_rate = config["training"]["learning_rate"]
-weight_decay = config["training"]["weight_decay"]
-target_tokens = config["training"].get("total_tokens", 300_000_000_000)
-tokens_per_checkpoint = config["training"].get("tokens_per_checkpoint", 300_000_000)
-num_workers = config["training"].get("num_workers", 0)
-pin_memory = config["training"].get("pin_memory", False)
-grad_accum_steps = config["training"].get("grad_accum_steps", 1)
+batch_size = config["batch_size"]
+learning_rate = config["learning_rate"]
+weight_decay = config["weight_decay"]
+target_tokens = config.get("total_tokens", 300_000_000_000)
+tokens_per_checkpoint = config.get("tokens_per_checkpoint", 300_000_000)
+num_workers = config.get("num_workers", 0)
+pin_memory = config.get("pin_memory", False)
+grad_accum_steps = config.get("grad_accum_steps", 1)
 
 logger.info(f"Using device: {device}")
 
@@ -168,8 +169,8 @@ with open("loss_curve.json", "w") as f:
 with open("training_summary.json", "w") as f:
     json.dump({
         "final_tokens": total_tokens_processed,
-        "final_loss": loss_log[-1].get("train_loss", None),
-        "final_val_loss": loss_log[-1].get("val_loss", None),
+        "final_loss": loss_log[-1].get("train_loss", None) if loss_log else None,
+        "final_val_loss": loss_log[-1].get("val_loss", None) if loss_log else None,
         "total_time_sec": time.time() - start_time,
         "config": config
     }, f, indent=2)
