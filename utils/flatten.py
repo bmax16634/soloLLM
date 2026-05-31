@@ -5,13 +5,14 @@ from datasets import load_from_disk
 import json
 
 # ==== Config ====
-with open("config/soloGPT_v1_config.json") as f:
+CONFIG_PATH = "sologpt_v1/config.json"
+
+with open(CONFIG_PATH, encoding="utf-8") as f:
     config = json.load(f)
 
 SEQ_LEN = config['seq_length']
 TOKENS_PER_SHARD = 150_000_000
 SAVE_DIR = "data/tokenized_chunks"
-CONFIG_PATH = "config/soloGPT_v1_config.json"
 os.makedirs(SAVE_DIR, exist_ok=True)
 
 # Load tokenized dataset
@@ -68,7 +69,6 @@ if os.path.exists(CONFIG_PATH):
     print(f"📝 Updated config.json with total_tokens: {total_tokens:,}")
 else:
     print("⚠️ config.json not found. Skipping config update.")
-
 
 
 

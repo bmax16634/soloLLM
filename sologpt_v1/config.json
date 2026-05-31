@@ -23,7 +23,8 @@
   "k": 40,
   "output_len": 500,
   "prompt": "Where is Phoenix located?",
-  "save_path": "./soloGPT-v1/outputs",
+  "save_path": "./outputs/sologpt_v1",
+  "shard_dir": "./data/tokenized_chunks",
   "training": {
     "total_tokens": 9031980032
   }

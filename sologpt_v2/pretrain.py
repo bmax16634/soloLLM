@@ -24,17 +24,17 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.dirname(HERE)
 CONFIG_PATH = os.path.join(HERE, "config.json")
 with open(CONFIG_PATH, "r", encoding="utf-8") as f:
     config = json.load(f)
 
-output_dir = config.get("save_path", os.path.join(HERE, "outputs"))
+output_dir = config.get("save_path", os.path.join(REPO_ROOT, "outputs", "sologpt_v2"))
 os.makedirs(output_dir, exist_ok=True)
 model_basename = "sologpt_pretrained"
 final_model_path = os.path.join(output_dir, f"{model_basename}.pth")
 
-# Your shard dir (explicit)
-shard_dir = "/home/bmx/_projects/soloLLM/data/tokenized_chunks"
+shard_dir = config.get("shard_dir", os.path.join(REPO_ROOT, "data", "tokenized_chunks"))
 val_path = config.get("val_path")
 
 device = torch.device(config.get("device", "cuda") if torch.cuda.is_available() else "cpu")

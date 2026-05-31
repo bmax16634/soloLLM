@@ -6,10 +6,10 @@ from torch.utils.data import DataLoader, Dataset
 from transformers import GPT2Tokenizer
 from datasets import load_dataset, concatenate_datasets
 from tqdm import tqdm
-from models.soloGPT_v1_model import SoloGPT_v1
+from sologpt_v1.model import SoloGPT_v1
 
 # --- Config ---
-with open("config/soloGPT_v1_config.json") as f:
+with open("sologpt_v1/config.json", encoding="utf-8") as f:
     config = json.load(f)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -29,6 +29,7 @@ epochs_no_improve = 0
 model = SoloGPT_v1(config).to(device)
 model.load_state_dict(torch.load("outputs/pytorch_model.pth"))
 model.train()
+os.makedirs("outputs", exist_ok=True)
 
 # --- Tokenizer ---
 tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
@@ -147,7 +148,7 @@ for epoch in range(epochs):
     if val_loss < best_val_loss:
         best_val_loss = val_loss
         epochs_no_improve = 0
-        torch.save(model.state_dict(), "output/finetuned_sologpt_combined_best.pth")
+        torch.save(model.state_dict(), "outputs/finetuned_sologpt_combined_best.pth")
     else:
         epochs_no_improve += 1
         if epochs_no_improve >= patience:
@@ -155,6 +156,5 @@ for epoch in range(epochs):
             break
 
 # --- Save ---
-os.makedirs("output", exist_ok=True)
-torch.save(model.state_dict(), "output/finetuned_sologpt_combined.pth")
-print("🎉 Done. Model saved to output/finetuned_sologpt_combined.pth")
+torch.save(model.state_dict(), "outputs/finetuned_sologpt_combined.pth")
+print("🎉 Done. Model saved to outputs/finetuned_sologpt_combined.pth")

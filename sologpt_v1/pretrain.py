@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import time
+import contextlib
 from glob import glob
 import torch
 import torch.nn as nn
@@ -14,24 +15,41 @@ from .model import SoloGPT_v1
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-with open("./soloGPT-v1/config.json") as f:
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.dirname(HERE)
+CONFIG_PATH = os.path.join(HERE, "config.json")
+
+with open(CONFIG_PATH, encoding="utf-8") as f:
     config = json.load(f)
 
 device = torch.device(config.get("device", "cuda") if torch.cuda.is_available() else "cpu")
-save_path = config.get("save_path", "pretrained_model.pth")
-shard_dir = './data/tokenized_chunks'
+output_dir = config.get("save_path", os.path.join(REPO_ROOT, "outputs", "sologpt_v1"))
+os.makedirs(output_dir, exist_ok=True)
+save_path = os.path.join(output_dir, "sologpt_v1_pretrained.pth")
+shard_dir = config.get("shard_dir", os.path.join(REPO_ROOT, "data", "tokenized_chunks"))
 val_path = config.get("val_path")  # Optional
 
 batch_size = config["batch_size"]
 learning_rate = config["learning_rate"]
 weight_decay = config["weight_decay"]
-target_tokens = config.get("total_tokens", 300_000_000_000)
+target_tokens = (
+    config.get("total_tokens")
+    or (config.get("training", {}) or {}).get("total_tokens")
+    or 300_000_000_000
+)
 tokens_per_checkpoint = config.get("tokens_per_checkpoint", 300_000_000)
 num_workers = config.get("num_workers", 0)
 pin_memory = config.get("pin_memory", False)
 grad_accum_steps = config.get("grad_accum_steps", 1)
+loss_curve_path = os.path.join(output_dir, "loss_curve.json")
+summary_path = os.path.join(output_dir, "training_summary.json")
 
 logger.info(f"Using device: {device}")
+logger.info(f"Shard dir: {shard_dir}")
+
+use_cuda = device.type == "cuda"
+scaler = torch.amp.GradScaler("cuda", enabled=use_cuda)
+amp_ctx = torch.amp.autocast("cuda", dtype=torch.float16) if use_cuda else contextlib.nullcontext()
 
 # ---------- Dataset ----------
 class TokenizedShardDataset(Dataset):
@@ -55,7 +73,7 @@ def evaluate(model, val_loader):
     model.eval()
     total_loss = 0
     total_tokens = 0
-    with torch.no_grad(), torch.amp.autocast("cuda"):
+    with torch.no_grad(), amp_ctx:
         for batch in val_loader:
             input_ids = batch.to(device)
             tokens = input_ids.numel()
@@ -73,7 +91,6 @@ if torch.cuda.device_count() > 1:
     model = nn.DataParallel(model)
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-scaler = torch.amp.GradScaler("cuda")
 criterion = nn.CrossEntropyLoss(ignore_index=-100)
 
 # ---------- Optional Validation Setup ----------
@@ -107,7 +124,7 @@ while total_tokens_processed < target_tokens and shard_idx < len(shard_paths):
         input_ids = batch.to(device)
         tokens_this_batch = input_ids.numel()
 
-        with torch.amp.autocast("cuda"):
+        with amp_ctx:
             logits = model(input_ids)
             logits = logits[:, :-1, :].contiguous()
             targets = input_ids[:, 1:].contiguous()
@@ -162,11 +179,11 @@ torch.save(model.state_dict(), save_path)
 logger.info(f"🏁 Training complete. Total tokens: {total_tokens_processed:,}. Final model saved to {save_path}")
 
 # Save loss log
-with open("loss_curve.json", "w") as f:
+with open(loss_curve_path, "w", encoding="utf-8") as f:
     json.dump(loss_log, f, indent=2)
 
 # Save training summary
-with open("training_summary.json", "w") as f:
+with open(summary_path, "w", encoding="utf-8") as f:
     json.dump({
         "final_tokens": total_tokens_processed,
         "final_loss": loss_log[-1].get("train_loss", None) if loss_log else None,

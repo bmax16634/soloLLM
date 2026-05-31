@@ -1,7 +1,7 @@
 import torch, os
 from safetensors.torch import load_file
 
-from models.soloGPT_v1_model import SoloGPT_v1
+from sologpt_v1.model import SoloGPT_v1
 
 
 
@@ -42,6 +42,9 @@ def load_model(config, checkpoint_path=None, device=None):
             state_dict = load_file(checkpoint_path, device=device_str)
         else:
             raise ValueError(f"Unsupported checkpoint format: '{ext}'")
+
+        if isinstance(state_dict, dict) and "model_state" in state_dict:
+            state_dict = state_dict["model_state"]
 
         model.load_state_dict(state_dict)
 

@@ -4,14 +4,14 @@ import numpy as np
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 from transformers import GPT2LMHeadModel
-from models.soloGPT_v1_model import SoloGPT_v1
+from sologpt_v1.model import SoloGPT_v1
 import os
 
 
 batch_size:int = 1
 
 # --- Config & Device ---
-with open("config/soloGPT_v1_config.json") as f:
+with open("sologpt_v1/config.json", encoding="utf-8") as f:
     config = json.load(f)
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

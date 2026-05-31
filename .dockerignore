@@ -6,20 +6,18 @@
 !requirements.txt
 !app.py
 
-# 3. Re-include the inference code and its parent dir
-!inference/
-!inference/generate.py
-
-# 4. Re-include the config and its parent dir
-!config/
-!config/soloGPT_v1_config.json
-
-# 5. Re-include your model class (so imports work) and its parent dir
-!models/
-!models/soloGPT_v1_model.py
+# 3. Re-include the app model code
+!sologpt_v1/
+!sologpt_v1/__init__.py
+!sologpt_v1/config.json
+!sologpt_v1/generate.py
+!sologpt_v1/model.py
 
 !outputs/
+!outputs/finetuned_sologpt_combined_best.pth
 !outputs/pytorch_model.bin
+!outputs/pytorch_model.pth
+!outputs/pytorch_model.safetensors
 
 !assets/
 !assets/soloLLM2.png

@@ -1,9 +1,10 @@
 import streamlit as st
 from pathlib import Path
-from inference.soloGPT_v1_generate import generate
 import base64
 
-# ─── two levels up from this file ───
+from sologpt_v1.generate import DEFAULT_CHECKPOINT, generate
+
+
 logo_path = Path("assets/soloLLM2.png")
 
 def get_base64_of_bin_file(bin_file):
@@ -43,12 +44,17 @@ with st.expander("Advanced settings", expanded=True):
 
 # === GENERATE BUTTON ===
 if st.button("Generate"):
-    with st.spinner("Generating response..."):
-        output = generate(
-            prompt,
-            max_new_tokens=max_tokens,
-            temperature=temperature,
-            top_k=top_k
-        )
-    st.markdown("### Output")
-    st.write(output)
+    checkpoint_path = DEFAULT_CHECKPOINT
+    if not checkpoint_path.exists():
+        st.error(f"Missing model checkpoint: {checkpoint_path}")
+    else:
+        with st.spinner("Generating response..."):
+            output = generate(
+                prompt,
+                max_new_tokens=max_tokens,
+                temperature=temperature,
+                top_k=top_k,
+                checkpoint_path=checkpoint_path,
+            )
+        st.markdown("### Output")
+        st.write(output)

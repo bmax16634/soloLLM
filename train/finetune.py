@@ -7,10 +7,10 @@ from torch.utils.data import DataLoader, Dataset
 from transformers import GPT2Tokenizer
 from datasets import load_dataset
 from tqdm import tqdm
-from models.soloGPT_v1_model import SoloGPT_v1
+from sologpt_v1.model import SoloGPT_v1
 
 # --- Config ---
-with open("config/soloGPT_v1_config.json") as f:
+with open("sologpt_v1/config.json", encoding="utf-8") as f:
     config = json.load(f)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -128,6 +128,6 @@ for epoch in range(epochs):
     print(f"✅ Epoch {epoch+1} | Train Loss: {avg_train_loss:.4f} | Val Loss: {val_loss:.4f}")
 
 # --- Save model ---
-os.makedirs("output", exist_ok=True)
-torch.save(model.state_dict(), "output/finetuned_sologpt_dolly15k.pth")
-print("🎉 Done. Model saved to output/finetuned_sologpt_dolly15k.pth")
+os.makedirs("outputs", exist_ok=True)
+torch.save(model.state_dict(), "outputs/finetuned_sologpt_dolly15k.pth")
+print("🎉 Done. Model saved to outputs/finetuned_sologpt_dolly15k.pth")
