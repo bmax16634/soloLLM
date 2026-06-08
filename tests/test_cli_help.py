@@ -76,3 +76,15 @@ def test_multiple_choice_benchmarks_help_runs_from_repo_root():
     )
 
     assert "--benchmarks" in result.stdout
+
+
+def test_v3_eval_suite_help_runs_from_repo_root():
+    result = subprocess.run(
+        [sys.executable, "-m", "eval.v3_eval_suite", "--help"],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+
+    assert "--execute" in result.stdout

@@ -53,6 +53,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output-json", default=None)
     parser.add_argument("--device", choices=["cpu", "cuda", "mps"], default=None)
     parser.add_argument("--max-batches", type=int, default=None, help="Optional smoke-test limit")
+    parser.add_argument("--model-label", default=None, help="Optional display label in the output JSON")
     parser.add_argument("--no-progress", action="store_true")
     return parser.parse_args(argv)
 
@@ -263,8 +264,10 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
         )
 
     mean_loss = total_loss / total_tokens if total_tokens else float("inf")
+    model_label = args.model_label or args.model
     result = {
-        "model": args.model,
+        "model": model_label,
+        "model_loader": args.model,
         "checkpoint": args.checkpoint,
         "config": model_info.get("config"),
         "shard_dir": str(shard_dir),

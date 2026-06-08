@@ -46,6 +46,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--v1-config", default=str(DEFAULT_V1_CONFIG))
     parser.add_argument("--v2-checkpoint", default=str(DEFAULT_V2_CHECKPOINT))
     parser.add_argument("--v2-config", default=str(DEFAULT_V2_CONFIG))
+    parser.add_argument("--v2-label", default="v2", help="Display label for the v2-loaded model")
     parser.add_argument("--output-json", default=str(DEFAULT_OUTPUT_JSON))
     parser.add_argument("--output-md", default=str(DEFAULT_OUTPUT_MD))
     parser.add_argument("--device", choices=["cpu", "cuda", "mps"], default=None)
@@ -54,6 +55,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--top-k", type=int, default=40)
     parser.add_argument("--seed", type=int, default=1337)
     return parser.parse_args(argv)
+
+
+def display_name(model_name: str, *, v2_label: str) -> str:
+    return v2_label if model_name == "v2" else model_name
 
 
 def resolve_path(value: str | Path) -> Path:
@@ -245,6 +250,7 @@ def main(argv: list[str] | None = None) -> int:
         }
         for model_index, model_name in enumerate(args.models):
             model, metadata = models[model_name]
+            label = display_name(model_name, v2_label=args.v2_label)
             seed_everything(args.seed + prompt_index * 100 + model_index)
             text, new_tokens = generate_one(
                 model,
@@ -258,7 +264,8 @@ def main(argv: list[str] | None = None) -> int:
             )
             prompt_result["completions"].append(
                 {
-                    "model": model_name,
+                    "model": label,
+                    "model_loader": model_name,
                     "text": text,
                     "new_tokens": new_tokens,
                     "parameter_count": metadata["parameter_count"],
@@ -269,7 +276,7 @@ def main(argv: list[str] | None = None) -> int:
 
     result = {
         "settings": settings,
-        "models": {name: metadata for name, (_, metadata) in models.items()},
+        "models": {display_name(name, v2_label=args.v2_label): metadata for name, (_, metadata) in models.items()},
         "samples": samples,
         "elapsed_sec": time.time() - started,
     }

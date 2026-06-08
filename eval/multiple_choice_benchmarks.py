@@ -33,6 +33,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--benchmarks", nargs="+", default=BENCHMARKS, choices=BENCHMARKS)
     parser.add_argument("--v2-checkpoint", default=str(DEFAULT_V2_CHECKPOINT))
     parser.add_argument("--v2-config", default=str(DEFAULT_V2_CONFIG))
+    parser.add_argument("--v2-label", default="v2", help="Display label for the v2-loaded model")
     parser.add_argument("--device", choices=["cpu", "cuda", "mps"], default=None)
     parser.add_argument("--context-length", type=int, default=512)
     parser.add_argument("--max-examples", type=int, default=0, help="0 means full validation split")
@@ -40,6 +41,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output-md", default=None)
     parser.add_argument("--no-progress", action="store_true")
     return parser.parse_args(argv)
+
+
+def display_name(model_name: str, *, v2_label: str) -> str:
+    return v2_label if model_name == "v2" else model_name
 
 
 def add_leading_space(text: str) -> str:
@@ -306,17 +311,19 @@ def main(argv: list[str] | None = None) -> int:
     models: dict[str, dict[str, Any]] = {}
     results: list[dict[str, Any]] = []
     for model_name in args.models:
+        label = display_name(model_name, v2_label=args.v2_label)
         model, metadata = load_model(
             model_name,
             device=device,
             v2_checkpoint=resolve_path(args.v2_checkpoint, Path.cwd()),
             v2_config=resolve_path(args.v2_config, Path.cwd()),
         )
-        models[model_name] = metadata
+        models[label] = metadata
         for benchmark in args.benchmarks:
             results.append(
                 {
-                    "model": model_name,
+                    "model": label,
+                    "model_loader": model_name,
                     **evaluate_benchmark(
                         model,
                         tokenizer,
@@ -325,7 +332,7 @@ def main(argv: list[str] | None = None) -> int:
                         device=device,
                         context_length=args.context_length,
                         disable_progress=args.no_progress,
-                        model_name=model_name,
+                        model_name=label,
                     ),
                 }
             )

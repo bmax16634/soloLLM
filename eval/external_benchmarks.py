@@ -42,6 +42,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--benchmarks", nargs="+", default=["wikitext2", "lambada"], choices=["wikitext2", "lambada"])
     parser.add_argument("--v2-checkpoint", default=str(DEFAULT_V2_CHECKPOINT))
     parser.add_argument("--v2-config", default=str(DEFAULT_V2_CONFIG))
+    parser.add_argument("--v2-label", default="v2", help="Display label for the v2-loaded model")
     parser.add_argument("--device", choices=["cpu", "cuda", "mps"], default=None)
     parser.add_argument("--context-length", type=int, default=512, help="Shared context window for all models")
     parser.add_argument("--max-wikitext-tokens", type=int, default=250_000)
@@ -50,6 +51,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output-md", default=None)
     parser.add_argument("--no-progress", action="store_true")
     return parser.parse_args(argv)
+
+
+def display_name(model_name: str, *, v2_label: str) -> str:
+    return v2_label if model_name == "v2" else model_name
 
 
 def load_model(
@@ -409,18 +414,20 @@ def main(argv: list[str] | None = None) -> int:
     models: dict[str, dict[str, Any]] = {}
     results: list[dict[str, Any]] = []
     for model_name in args.models:
+        label = display_name(model_name, v2_label=args.v2_label)
         model, metadata = load_model(
             model_name,
             device=device,
             v2_checkpoint=resolve_path(args.v2_checkpoint, Path.cwd()),
             v2_config=resolve_path(args.v2_config, Path.cwd()),
         )
-        models[model_name] = metadata
+        models[label] = metadata
 
         if wikitext_texts is not None:
             results.append(
                 {
-                    "model": model_name,
+                    "model": label,
+                    "model_loader": model_name,
                     **run_wikitext2(
                         model,
                         tokenizer,
@@ -429,14 +436,15 @@ def main(argv: list[str] | None = None) -> int:
                         context_length=args.context_length,
                         max_tokens=args.max_wikitext_tokens,
                         disable_progress=args.no_progress,
-                        model_name=model_name,
+                        model_name=label,
                     ),
                 }
             )
         if lambada_texts is not None:
             results.append(
                 {
-                    "model": model_name,
+                    "model": label,
+                    "model_loader": model_name,
                     **run_lambada(
                         model,
                         tokenizer,
@@ -444,7 +452,7 @@ def main(argv: list[str] | None = None) -> int:
                         device=device,
                         context_length=args.context_length,
                         disable_progress=args.no_progress,
-                        model_name=model_name,
+                        model_name=label,
                     ),
                 }
             )

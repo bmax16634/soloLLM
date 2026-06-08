@@ -93,6 +93,8 @@ V3 response:
 
 The v2 eval suite should become the minimum frozen v3 comparison suite, and v3 should add multiple-choice base-LM benchmarks before any "beats GPT-2 across the board" claim.
 
+The executable runner and commands are documented in `docs/V3_EVAL_SUITE.md`.
+
 ### Required Comparability Suite
 
 1. full project held-out PPL on shards `58:60`,
