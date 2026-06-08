@@ -341,6 +341,14 @@ def format_value(value: Any, precision: int = 4) -> str:
     return str(value)
 
 
+def format_cap(value: Any) -> str:
+    if value is None:
+        return "full"
+    if isinstance(value, int) and value <= 0:
+        return "full"
+    return str(value)
+
+
 def write_markdown(path: Path, result: dict[str, Any]) -> None:
     lines = [
         "# External Base-LM Benchmark Results",
@@ -349,8 +357,8 @@ def write_markdown(path: Path, result: dict[str, Any]) -> None:
         "",
         f"- Context length: `{result['settings']['context_length']}`",
         f"- Device: `{result['settings']['device']}`",
-        f"- WikiText token cap: `{result['settings']['max_wikitext_tokens']}`",
-        f"- LAMBADA example cap: `{result['settings']['max_lambada_examples']}`",
+        f"- WikiText token cap: `{format_cap(result['settings']['max_wikitext_tokens'])}`",
+        f"- LAMBADA example cap: `{format_cap(result['settings']['max_lambada_examples'])}`",
         "",
         "| Benchmark | Model | Tokens | PPL | Loss | Last-token acc | Last-word exact |",
         "|---|---|---:|---:|---:|---:|---:|",

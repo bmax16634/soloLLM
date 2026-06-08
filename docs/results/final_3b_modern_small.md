@@ -136,20 +136,31 @@ Fixed generation metrics for `v2-modern-small` 5.60B versus GPT-2 small:
 | `v2-modern-small` 5.60B | 8 | 75.5 | 0.3907 | 0.7512 | 0.2015 | 0.1282 | 2 |
 | GPT-2 small | 8 | 74.6 | 0.3869 | 0.7836 | 0.1715 | 0.1120 | 2 |
 
-External benchmark results use the GPT-2 tokenizer and a shared 512-token context window:
+Full external benchmark results use the GPT-2 tokenizer and a shared 512-token context window:
 
 | Benchmark | Scope | `v2-modern-small` 5.60B | GPT-2 small | Gap |
 | --- | --- | ---: | ---: | ---: |
-| WikiText-2 PPL | 249,511 scored tokens | 83.24 | 49.34 | v2 `+68.7%` PPL |
-| LAMBADA PPL | 84,474 scored tokens / 1,000 examples | 62.46 | 42.37 | v2 `+47.4%` PPL |
-| LAMBADA last-token accuracy | 1,000 examples | 44.3% | 46.6% | v2 `-2.3` points |
-| LAMBADA last-word greedy exact | 1,000 examples | 28.8% | 31.7% | v2 `-2.9` points |
+| WikiText-2 PPL | 285,618 scored tokens | 84.81 | 49.86 | v2 `+70.1%` PPL |
+| LAMBADA PPL | 434,531 scored tokens / 5,153 examples | 63.03 | 42.26 | v2 `+49.2%` PPL |
+| LAMBADA last-token accuracy | 5,153 examples | 44.30% | 46.67% | v2 `-2.37` points |
+| LAMBADA last-word greedy exact | 5,153 examples | 29.09% | 32.60% | v2 `-3.51` points |
+
+Full multiple-choice continuation scoring uses conditional log-likelihood with a shared 512-token context window. `Accuracy norm` is the primary metric because it normalizes by continuation length:
+
+| Benchmark | Examples | `v2-modern-small` 5.60B acc norm | GPT-2 small acc norm | Gap |
+| --- | ---: | ---: | ---: | ---: |
+| HellaSwag | 10,042 | 26.99% | 29.53% | v2 `-2.54` points |
+| PIQA | 1,000 | 61.00% | 63.60% | v2 `-2.60` points |
+| ARC-Easy | 570 | 37.89% | 40.35% | v2 `-2.46` points |
+| ARC-Challenge | 299 | 19.73% | 22.07% | v2 `-2.34` points |
+| WinoGrande | 1,267 | 49.25% | 49.72% | v2 `-0.47` points |
 
 Interpretation:
 
 - On the project held-out split, v2 is genuinely close to GPT-2 small: about `0.95%` higher perplexity.
 - On external corpora, GPT-2 is more robust. The gap is much larger on WikiText-2 and LAMBADA perplexity.
 - LAMBADA token/word accuracy is closer than external perplexity, but GPT-2 still leads.
+- GPT-2 leads every length-normalized multiple-choice check, though those gaps are much smaller than the external perplexity gaps.
 - The best honest conclusion is that v2 approaches GPT-2 on the in-domain held-out comparison, but it does not match GPT-2 across the board.
 
 ## Artifacts
@@ -183,8 +194,14 @@ Interpretation:
 | Stretch v2/GPT-2 generation metrics report | `docs/results/phase4_generation_metrics_5p6b_v2_gpt2.md` |
 | Stretch v2/GPT-2 external benchmarks JSON | `outputs/sologpt_v2/stretch_5p85b_modern_small_from3b/external_benchmarks_5p6b_v2_gpt2.json` |
 | Stretch v2/GPT-2 external benchmarks report | `docs/results/external_benchmarks_5p6b_v2_gpt2.md` |
+| Stretch v2/GPT-2 full external benchmarks JSON | `outputs/sologpt_v2/stretch_5p85b_modern_small_from3b/external_benchmarks_5p6b_v2_gpt2_full.json` |
+| Stretch v2/GPT-2 full external benchmarks report | `docs/results/external_benchmarks_5p6b_v2_gpt2_full.md` |
+| Stretch v2/GPT-2 full multiple-choice JSON | `outputs/sologpt_v2/stretch_5p85b_modern_small_from3b/multiple_choice_5p6b_v2_gpt2_full.json` |
+| Stretch v2/GPT-2 full multiple-choice report | `docs/results/multiple_choice_5p6b_v2_gpt2_full.md` |
+| Stretch v2/GPT-2 full diagnostic report | `docs/results/v2_gpt2_full_diagnostic.md` |
 | Generation metrics CLI | `eval/generation_metrics.py` |
 | External benchmark CLI | `eval/external_benchmarks.py` |
+| Multiple-choice benchmark CLI | `eval/multiple_choice_benchmarks.py` |
 
 ## Qualitative Generation
 

@@ -64,3 +64,15 @@ def test_external_benchmarks_help_runs_from_repo_root():
     )
 
     assert "--benchmarks" in result.stdout
+
+
+def test_multiple_choice_benchmarks_help_runs_from_repo_root():
+    result = subprocess.run(
+        [sys.executable, "-m", "eval.multiple_choice_benchmarks", "--help"],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+
+    assert "--benchmarks" in result.stdout

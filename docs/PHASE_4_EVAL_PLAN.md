@@ -102,10 +102,11 @@ The optional robust comparison layer is also complete for the 5.60B checkpoint:
 | --- | ---: | ---: | --- |
 | Fixed prompts corpus distinct-2 | 0.7512 | 0.7836 | GPT-2 slightly higher diversity |
 | Fixed prompts repeated bigram fraction | 0.2015 | 0.1715 | GPT-2 slightly less repetitive |
-| WikiText-2 PPL | 83.24 | 49.34 | 249,511 scored tokens, shared 512 context |
-| LAMBADA PPL | 62.46 | 42.37 | 1,000-example cap, shared 512 context |
-| LAMBADA last-token accuracy | 44.3% | 46.6% | lightweight approximation |
-| LAMBADA last-word greedy exact | 28.8% | 31.7% | lightweight approximation |
+| WikiText-2 PPL | 84.81 | 49.86 | full test, shared 512 context |
+| LAMBADA PPL | 63.03 | 42.26 | full test, shared 512 context |
+| LAMBADA last-token accuracy | 44.30% | 46.67% | lightweight approximation |
+| LAMBADA last-word greedy exact | 29.09% | 32.60% | lightweight approximation |
+| Multiple-choice acc norm | trails all 5 checks | leads all 5 checks | HellaSwag, PIQA, ARC-Easy, ARC-Challenge, WinoGrande |
 
 Conclusion: v2 is close to GPT-2 on the project held-out split, but GPT-2 remains more robust on external corpora and generation stability checks.
 

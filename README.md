@@ -34,6 +34,7 @@ The project is organized as a portfolio case study: `sologpt_v1` is the publishe
 | `docs/results/phase1_50m_sanity.md` | Completed 50M sanity results and Phase 1 decision. |
 | `docs/results/phase2_300m_pilot.md` | Completed 300M pilot results and Phase 2 decision. |
 | `docs/results/final_3b_modern_small.md` | Final v2 3B-token training and Phase 4 evaluation results. |
+| `docs/results/v2_gpt2_full_diagnostic.md` | Full v2 5.60B vs GPT-2 diagnostic across held-out, external, generation, and multiple-choice evals. |
 | `docs/results/phase4_generations.md` | Fixed qualitative generation samples for v1, v2, and GPT-2. |
 | `tests/` | CPU-safe smoke tests and tiny v2 config. |
 
@@ -158,7 +159,7 @@ Stretch-checkpoint full eval, completed June 8, 2026:
 
 The 5.60B stretch checkpoint improves over the 3B checkpoint by about `2.7%` lower perplexity on the same full held-out split. It remains behind GPT-2 small, but the full-eval gap is narrow: about `+0.0094` loss and `+0.95%` perplexity.
 
-Additional robust comparison checks were added for the 5.60B checkpoint. On the fixed prompt suite, v2 and GPT-2 have similar diversity metrics, but GPT-2 has slightly lower repeated bigram/trigram rates. On external corpora, GPT-2 pulls ahead more clearly: WikiText-2 PPL `49.34` vs v2 `83.24`, LAMBADA PPL `42.37` vs v2 `62.46`, LAMBADA last-token accuracy `46.6%` vs v2 `44.3%`, and LAMBADA last-word greedy exact `31.7%` vs v2 `28.8%`. The honest conclusion is that v2 is very close on the project held-out split, but GPT-2 remains more robust across the board.
+Additional robust comparison checks were added for the 5.60B checkpoint. On the fixed prompt suite, v2 and GPT-2 have similar diversity metrics, but GPT-2 has slightly lower repeated bigram/trigram rates. On full external corpora, GPT-2 pulls ahead more clearly: WikiText-2 PPL `49.86` vs v2 `84.81`, LAMBADA PPL `42.26` vs v2 `63.03`, LAMBADA last-token accuracy `46.67%` vs v2 `44.30%`, and LAMBADA last-word greedy exact `32.60%` vs v2 `29.09%`. GPT-2 also leads all five length-normalized multiple-choice checks. The honest conclusion is that v2 is very close on the project held-out split, but GPT-2 remains more robust across the board. See [docs/results/v2_gpt2_full_diagnostic.md](docs/results/v2_gpt2_full_diagnostic.md).
 
 Run perplexity evaluation:
 
@@ -202,10 +203,24 @@ python -m eval.external_benchmarks \
   --v2-checkpoint outputs/sologpt_v2/stretch_5p85b_modern_small_from3b/checkpoints/latest.pt \
   --v2-config sologpt_v2/config_modern_small.json \
   --context-length 512 \
-  --max-wikitext-tokens 250000 \
-  --max-lambada-examples 1000 \
-  --output-json outputs/sologpt_v2/stretch_5p85b_modern_small_from3b/external_benchmarks_5p6b_v2_gpt2.json \
-  --output-md docs/results/external_benchmarks_5p6b_v2_gpt2.md
+  --max-wikitext-tokens 0 \
+  --max-lambada-examples 0 \
+  --output-json outputs/sologpt_v2/stretch_5p85b_modern_small_from3b/external_benchmarks_5p6b_v2_gpt2_full.json \
+  --output-md docs/results/external_benchmarks_5p6b_v2_gpt2_full.md
+```
+
+Run the multiple-choice base-LM benchmark pass:
+
+```bash
+python -m eval.multiple_choice_benchmarks \
+  --models v2 gpt2 \
+  --benchmarks hellaswag piqa arc_easy arc_challenge winogrande \
+  --v2-checkpoint outputs/sologpt_v2/stretch_5p85b_modern_small_from3b/checkpoints/latest.pt \
+  --v2-config sologpt_v2/config_modern_small.json \
+  --context-length 512 \
+  --max-examples 0 \
+  --output-json outputs/sologpt_v2/stretch_5p85b_modern_small_from3b/multiple_choice_5p6b_v2_gpt2_full.json \
+  --output-md docs/results/multiple_choice_5p6b_v2_gpt2_full.md
 ```
 
 ## Generation Demo

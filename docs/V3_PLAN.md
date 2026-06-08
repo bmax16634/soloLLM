@@ -18,10 +18,15 @@ V2 did not beat GPT-2 small across the board. V3 should target that directly.
 | Check | V2 5.60B | GPT-2 small | Gap | What it suggests |
 | --- | ---: | ---: | ---: | --- |
 | Project held-out PPL, shards `58:60` | 25.56 | 25.32 | v2 `+0.95%` | V2 is close in-domain. The architecture and training loop are not the main blocker. |
-| WikiText-2 PPL | 83.24 | 49.34 | v2 `+68.7%` | V2 generalizes worse to a different text distribution. Data mix/quality is likely the biggest v3 lever. |
-| LAMBADA PPL | 62.46 | 42.37 | v2 `+47.4%` | V2 assigns weaker probabilities to longer natural continuations. This points to data, context length, and calibration/generalization. |
-| LAMBADA last-token accuracy | 44.3% | 46.6% | v2 `-2.3` points | The model can often identify plausible next tokens; the gap is not hopeless. |
-| LAMBADA last-word greedy exact | 28.8% | 31.7% | v2 `-2.9` points | GPT-2 is still better at exact continuation, but the accuracy gap is smaller than the perplexity gap. |
+| WikiText-2 PPL, full test | 84.81 | 49.86 | v2 `+70.1%` | V2 generalizes worse to a different text distribution. Data mix/quality is likely the biggest v3 lever. |
+| LAMBADA PPL, full test | 63.03 | 42.26 | v2 `+49.2%` | V2 assigns weaker probabilities to longer natural continuations. This points to data, context length, and calibration/generalization. |
+| LAMBADA last-token accuracy | 44.30% | 46.67% | v2 `-2.37` points | The model can often identify plausible next tokens; the gap is not hopeless. |
+| LAMBADA last-word greedy exact | 29.09% | 32.60% | v2 `-3.51` points | GPT-2 is still better at exact continuation, but the accuracy gap is smaller than the perplexity gap. |
+| HellaSwag acc norm | 26.99% | 29.53% | v2 `-2.54` points | GPT-2 is better at commonsense continuation. |
+| PIQA acc norm | 61.00% | 63.60% | v2 `-2.60` points | GPT-2 is better at physical commonsense. |
+| ARC-Easy acc norm | 37.89% | 40.35% | v2 `-2.46` points | GPT-2 is better on simple science QA scoring. |
+| ARC-Challenge acc norm | 19.73% | 22.07% | v2 `-2.34` points | GPT-2 is better on harder science QA scoring. |
+| WinoGrande acc norm | 49.25% | 49.72% | v2 `-0.47` points | This is the closest broad-eval task. |
 | Fixed prompts distinct-2 | 0.7512 | 0.7836 | v2 `-0.0323` | GPT-2 has slightly healthier n-gram diversity under the same sampling settings. |
 | Fixed prompts repeated bigram fraction | 0.2015 | 0.1715 | v2 `+0.0300` | V2 is slightly more repetitive in sampled continuations. |
 
@@ -84,9 +89,11 @@ V3 response:
 - watch for external validation improvement, not only project validation PPL,
 - stop or adjust when project PPL improves but external PPL does not.
 
-## V3 Evaluation Gate
+## Full V3 Evaluation Suite
 
-The v2 eval suite should become the minimum frozen v3 comparison suite:
+The v2 eval suite should become the minimum frozen v3 comparison suite, and v3 should add multiple-choice base-LM benchmarks before any "beats GPT-2 across the board" claim.
+
+### Required Comparability Suite
 
 1. full project held-out PPL on shards `58:60`,
 2. per-shard stability table,
@@ -97,11 +104,27 @@ The v2 eval suite should become the minimum frozen v3 comparison suite:
 7. LAMBADA last-token accuracy,
 8. LAMBADA last-word greedy exact accuracy.
 
-For v3, the suite should be expanded before making a public "beats GPT-2 across the board" claim:
+This suite answers whether v3 improved over v2 on the exact tests used to close v2.
+
+### Required Broad-Eval Suite
+
+For v3, the final public comparison should also include multiple-choice continuation scoring:
+
+| Benchmark | Why include it | Primary metric |
+| --- | --- | --- |
+| HellaSwag | commonsense continuation under distribution shift | length-normalized accuracy |
+| PIQA | physical commonsense | length-normalized accuracy |
+| ARC-Easy | grade-school science QA | length-normalized accuracy |
+| ARC-Challenge | harder science QA | length-normalized accuracy |
+| WinoGrande | pronoun/coreference-style commonsense | length-normalized accuracy |
+
+These are not instruction-following tests. They are base-LM scoring tests: each answer choice is scored by conditional log-likelihood, and the highest-scoring choice wins.
+
+For v3 final eval:
 
 - remove the current 1,000-example LAMBADA cap for final eval,
 - run WikiText-2 without a token cap, or document the exact cap if kept for repeatability,
-- add at least one multiple-choice base-LM benchmark through `lm-eval-harness` or an equivalent local scorer,
+- run the multiple-choice benchmarks on full validation splits,
 - keep GPT-2 small and v2 5.60B as fixed baselines,
 - report all failures and do not cherry-pick prompts.
 
@@ -127,6 +150,7 @@ V3 should only claim it beats GPT-2 small if it beats GPT-2 small on:
 - WikiText-2 PPL,
 - LAMBADA PPL,
 - LAMBADA last-token or last-word accuracy,
+- most full validation multiple-choice benchmarks by length-normalized accuracy,
 - generation repetition metrics without worse qualitative samples.
 
 If v3 beats GPT-2 on the project held-out split but not on external checks, the honest claim should be:

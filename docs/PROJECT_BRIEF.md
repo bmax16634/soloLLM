@@ -104,12 +104,13 @@ Additional 5.60B comparison checks were added after the full held-out result:
 | --- | ---: | ---: | --- |
 | Fixed prompts corpus distinct-2 | 0.7512 | 0.7836 | similar diversity, GPT-2 slightly higher |
 | Fixed prompts repeated bigram fraction | 0.2015 | 0.1715 | GPT-2 slightly less repetitive |
-| WikiText-2 PPL, 249,511 tokens | 83.24 | 49.34 | GPT-2 much stronger out-of-domain |
-| LAMBADA PPL, 1,000-example cap | 62.46 | 42.37 | GPT-2 stronger |
-| LAMBADA last-token accuracy | 44.3% | 46.6% | close, GPT-2 ahead |
-| LAMBADA last-word greedy exact | 28.8% | 31.7% | close, GPT-2 ahead |
+| WikiText-2 PPL, full test | 84.81 | 49.86 | GPT-2 much stronger out-of-domain |
+| LAMBADA PPL, full test | 63.03 | 42.26 | GPT-2 stronger |
+| LAMBADA last-token accuracy | 44.30% | 46.67% | close, GPT-2 ahead |
+| LAMBADA last-word greedy exact | 29.09% | 32.60% | close, GPT-2 ahead |
+| Multiple-choice length-normalized checks | trails all 5 | leads all 5 | GPT-2 more robust |
 
-Generation samples and metrics are saved in `docs/results/phase4_generations_5p6b_v2_gpt2.md`, `docs/results/phase4_generation_metrics_5p6b_v2_gpt2.md`, and `docs/results/external_benchmarks_5p6b_v2_gpt2.md`. They support a sharper conclusion: v2 is close to GPT-2 on the project held-out split, but GPT-2 remains more robust across broader external checks.
+Generation samples, metrics, and the full diagnostic are saved in `docs/results/phase4_generations_5p6b_v2_gpt2.md`, `docs/results/phase4_generation_metrics_5p6b_v2_gpt2.md`, `docs/results/external_benchmarks_5p6b_v2_gpt2_full.md`, `docs/results/multiple_choice_5p6b_v2_gpt2_full.md`, and `docs/results/v2_gpt2_full_diagnostic.md`. They support a sharper conclusion: v2 is close to GPT-2 on the project held-out split, but GPT-2 remains more robust across broader external checks.
 
 ## Current Verification
 
