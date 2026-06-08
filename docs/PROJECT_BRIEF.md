@@ -1,0 +1,148 @@
+# SoloLLM Project Brief
+
+## Problem
+
+SoloLLM is a from-scratch GPT-style language-model project built to show the full engineering loop behind a small decoder-only LM: data preparation, model design, training infrastructure, evaluation, and serving.
+
+The goal is not to ship a production assistant. The goal is to make the work reproducible and technically legible enough that another engineer can inspect the system, run smoke tests, and understand what improved from v1 to v2.
+
+## V1 Baseline
+
+V1 proved the core path worked:
+
+- custom PyTorch decoder-only model,
+- OpenWebText tokenization and flattened shards,
+- pretraining script,
+- Dolly fine-tuning path,
+- Streamlit generation demo,
+- published Hugging Face artifact.
+
+The weakness of v1 is that it was a rough prototype. The architecture, training loop, eval path, and run artifacts were not yet strong enough for a polished ML systems portfolio case study.
+
+## V2 Design
+
+V2 is the serious rebuild. It now has two intended variants:
+
+| Variant | Purpose | Target |
+| --- | --- | --- |
+| `v2-gpt2-parity` | Control model | 123,616,512 params, GPT-2-small scale |
+| `v2-modern-small` | Main experiment | 91,654,400 params, smaller than GPT-2-small |
+
+The parity model is intentionally small and defensible:
+
+- 12 transformer layers,
+- 768 embedding width,
+- 12 attention heads,
+- 512-token context,
+- 123,616,512 parameters with tied embeddings,
+- RoPE attention,
+- pre-norm blocks,
+- optional tied input/output embeddings,
+- explicit max-context validation.
+
+This roughly matches GPT-2-small scale, which makes the final GPT-2 comparison easier to explain than simply increasing parameter count.
+
+The modern-small target is the original consumer-hardware experiment:
+
+- train on a single RTX 3090,
+- use fewer parameters than GPT-2-small,
+- add RMSNorm,
+- add SwiGLU,
+- keep RoPE and tied embeddings,
+- test whether a smaller modern model can approach or beat GPT-2-small on held-out perplexity.
+
+Phase 1 sanity results favored `v2-modern-small`: it was smaller, faster, and reached lower capped validation perplexity than the GPT-2-parity control after 50M tokens. The result is documented in `docs/results/phase1_50m_sanity.md`.
+
+## Training System
+
+The v2 trainer is designed around reproducibility and recovery:
+
+- CLI-driven configuration,
+- fixed train/validation/test shard ranges,
+- CPU-safe dry run,
+- JSONL metrics,
+- resolved config copy per run,
+- checkpoint metadata,
+- `checkpoints/latest.pt`,
+- resume support,
+- final model artifact,
+- metrics summary JSON.
+
+The intended split is:
+
+| Split | Shards |
+| --- | --- |
+| Train | `0:54` |
+| Validation | `55:57` |
+| Test | `58:60` |
+
+## Evaluation
+
+Final portfolio evaluation compares:
+
+| Model | Params | Context | Training Tokens | Eval Split | Loss | Perplexity | Notes |
+| --- | ---: | ---: | ---: | --- | ---: | ---: | --- |
+| SoloGPT v1 | 203.75M | 512 | 9.03B declared target, actual unverified | `58:60` | 3.41697 | 30.48 | Historical baseline, HF checkpoint |
+| v2-modern-small | 91.65M | 512 | 3.00B confirmed | `58:60` | 3.26816 | 26.26 | Smaller modern experiment |
+| v2-modern-small stretch | 91.65M | 512 | 5.60B checkpoint metadata | `58:60` | 3.24083 | 25.56 | Best official v2 checkpoint |
+| GPT-2 small | 124.44M | 1024 | Public pretrained | `58:60` | 3.23140 | 25.32 | Reference baseline |
+
+The best v2 checkpoint beats v1 clearly with about 55% fewer parameters. It improves over the 3B checkpoint, gets within about 0.95% perplexity of GPT-2 small, and still does not beat GPT-2. The final writeup should state all parts directly.
+
+The 5.60B stretch checkpoint full eval was run on June 8, 2026:
+
+| Model | Params | Checkpoint / Training Tokens | Eval Tokens | Loss | Perplexity | Notes |
+| --- | ---: | --- | ---: | ---: | ---: | --- |
+| v2-modern-small stretch | 91.65M | 5.60B checkpoint metadata | 331,353,862 | 3.24083 | 25.56 | `latest.pt` / `ckpt_5600M.pt` |
+| GPT-2 small | 124.44M | Public pretrained | 331,353,862 | 3.23140 | 25.32 | Reference baseline |
+
+On the full held-out split, the 5.60B v2 checkpoint is about 16.1% lower perplexity than v1, about 2.7% lower perplexity than the 3B checkpoint, and about 0.95% higher perplexity than GPT-2.
+
+Additional 5.60B comparison checks were added after the full held-out result:
+
+| Check | v2-modern-small 5.60B | GPT-2 small | Interpretation |
+| --- | ---: | ---: | --- |
+| Fixed prompts corpus distinct-2 | 0.7512 | 0.7836 | similar diversity, GPT-2 slightly higher |
+| Fixed prompts repeated bigram fraction | 0.2015 | 0.1715 | GPT-2 slightly less repetitive |
+| WikiText-2 PPL, 249,511 tokens | 83.24 | 49.34 | GPT-2 much stronger out-of-domain |
+| LAMBADA PPL, 1,000-example cap | 62.46 | 42.37 | GPT-2 stronger |
+| LAMBADA last-token accuracy | 44.3% | 46.6% | close, GPT-2 ahead |
+| LAMBADA last-word greedy exact | 28.8% | 31.7% | close, GPT-2 ahead |
+
+Generation samples and metrics are saved in `docs/results/phase4_generations_5p6b_v2_gpt2.md`, `docs/results/phase4_generation_metrics_5p6b_v2_gpt2.md`, and `docs/results/external_benchmarks_5p6b_v2_gpt2.md`. They support a sharper conclusion: v2 is close to GPT-2 on the project held-out split, but GPT-2 remains more robust across broader external checks.
+
+## Current Verification
+
+Run:
+
+```bash
+python -m pytest
+```
+
+The smoke suite covers:
+
+- v1 forward shape,
+- v2 forward shape,
+- v2 max-context rejection,
+- v2 tied embeddings,
+- v2 parameter-count summary,
+- v2 dry-run training,
+- checkpoint resume,
+- eval CLI JSON output.
+
+## Portfolio Framing
+
+Resume version:
+
+> Built from-scratch GPT-style language models in PyTorch on a single RTX 3090, comparing a GPT-2-scale control against a smaller modern RoPE/RMSNorm/SwiGLU variant with reproducible training, checkpoint resume, held-out perplexity evaluation, fixed generation metrics, and compact external base-LM benchmarks.
+
+Case-study version:
+
+> V1 proved the pipeline could work. V2 turned the project into an ML systems case study: a GPT-2-scale control, a smaller modern architecture experiment, reproducible runs, explicit checkpoints, smoke tests, fixed evaluation, robust comparison checks, and documented limitations.
+
+## Remaining Work
+
+1. Publish the final v2 checkpoint or document why it remains local.
+2. Package the final result as a resume/project page.
+3. Move dataset/tokenizer/model-size changes into a separate v3 plan.
+4. Use v3 to target beating GPT-2 across both the project held-out split and external base-LM checks.

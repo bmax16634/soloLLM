@@ -1,0 +1,42 @@
+[
+  {
+    "id": "factual_phoenix",
+    "category": "factual",
+    "prompt": "Phoenix, Arizona is known for"
+  },
+  {
+    "id": "science_intro",
+    "category": "explanatory",
+    "prompt": "In simple terms, photosynthesis is"
+  },
+  {
+    "id": "history_continuation",
+    "category": "factual",
+    "prompt": "The Industrial Revolution changed society by"
+  },
+  {
+    "id": "story_continuation",
+    "category": "story",
+    "prompt": "The old radio on the kitchen counter suddenly began to"
+  },
+  {
+    "id": "structured_list",
+    "category": "structured",
+    "prompt": "Three practical ways to save energy at home are:"
+  },
+  {
+    "id": "code_comment",
+    "category": "code-ish",
+    "prompt": "def add_numbers(a, b):"
+  },
+  {
+    "id": "reasoning_style",
+    "category": "reasoning-style",
+    "prompt": "If a train leaves the station at noon and travels west, then"
+  },
+  {
+    "id": "repetition_stress",
+    "category": "stability",
+    "prompt": "The most important thing to remember is"
+  }
+]
