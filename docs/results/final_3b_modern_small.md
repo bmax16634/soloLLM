@@ -214,3 +214,5 @@ The remaining v2 work is packaging, not experimentation:
 2. Treat dataset/tokenizer/model-size changes as v3 work.
 
 More training is plausible because validation was still improving, but it should now be treated as v3. The current v2 result is already a complete project outcome: a much smaller model than v1 that beats v1 clearly, gets within about 1% of GPT-2 small on the project held-out test, and documents that GPT-2 remains stronger on broader external checks.
+
+The v2-to-v3 gap analysis is documented in `docs/V3_PLAN.md`.

@@ -30,6 +30,7 @@ The project is organized as a portfolio case study: `sologpt_v1` is the publishe
 | `docs/PHASE_1_PLAN.md` | Two-variant v2 architecture and 50M sanity plan. |
 | `docs/PHASE_2_PLAN.md` | 300M modern-small pilot plan and completion status. |
 | `docs/PHASE_4_EVAL_PLAN.md` | Final robust comparison plan beyond perplexity alone. |
+| `docs/V3_PLAN.md` | V2-to-GPT-2 gap analysis and v3 plan. |
 | `docs/results/phase1_50m_sanity.md` | Completed 50M sanity results and Phase 1 decision. |
 | `docs/results/phase2_300m_pilot.md` | Completed 300M pilot results and Phase 2 decision. |
 | `docs/results/final_3b_modern_small.md` | Final v2 3B-token training and Phase 4 evaluation results. |
@@ -238,6 +239,8 @@ Phase 1 results are recorded in [docs/results/phase1_50m_sanity.md](docs/results
 Phase 2 results are recorded in [docs/results/phase2_300m_pilot.md](docs/results/phase2_300m_pilot.md). The 300M-token pilot completed with final capped validation PPL `42.95`, peak GPU memory about `10.48GB`, and enough stability to promote `v2-modern-small` to the final long-run phase.
 
 The final v2 run is recorded in [docs/results/final_3b_modern_small.md](docs/results/final_3b_modern_small.md). The 3B-token run completed on a single RTX 3090 with final validation PPL `26.13`, full held-out test PPL `26.26`, and average throughput about `50k tok/s`. A durable 5.60B stretch checkpoint later reached full held-out test PPL `25.56`.
+
+The v3 direction is recorded in [docs/V3_PLAN.md](docs/V3_PLAN.md). It documents what the v2 gaps to GPT-2 show, how v3 should address them, and why the v2 eval suite should be reused but expanded before claiming v3 beats GPT-2 across the board.
 
 ## License
 

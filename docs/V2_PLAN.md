@@ -62,7 +62,7 @@ The main v2 experiment is complete enough for portfolio documentation:
 | 5.60B stretch checkpoint | Full 331M-token held-out eval complete; PPL `25.56`, about `0.95%` above GPT-2 on the same split. |
 | Robust GPT-2 comparison | Complete; fixed generation metrics are close, but GPT-2 leads on WikiText-2 PPL, LAMBADA PPL, and LAMBADA token/word accuracy. |
 
-The official v2 result should now use the full-evaluated 5.60B stretch checkpoint as the best perplexity checkpoint, while keeping the 3B checkpoint documented as the main planned run. V2 should be closed honestly: it approaches GPT-2 on the project held-out split, but GPT-2 remains stronger across broader external checks.
+The official v2 result should now use the full-evaluated 5.60B stretch checkpoint as the best perplexity checkpoint, while keeping the 3B checkpoint documented as the main planned run. V2 should be closed honestly: it approaches GPT-2 on the project held-out split, but GPT-2 remains stronger across broader external checks. The v3 response is documented in `docs/V3_PLAN.md`.
 
 ## 1. Summary
 

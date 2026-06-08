@@ -109,6 +109,8 @@ The optional robust comparison layer is also complete for the 5.60B checkpoint:
 
 Conclusion: v2 is close to GPT-2 on the project held-out split, but GPT-2 remains more robust on external corpora and generation stability checks.
 
+The v3 plan in `docs/V3_PLAN.md` treats this suite as the frozen comparability baseline and expands it for any public claim that v3 beats GPT-2 across the board.
+
 ## Decision Logic
 
 If v2 beats v1 but not GPT-2:

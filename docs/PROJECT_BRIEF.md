@@ -144,5 +144,5 @@ Case-study version:
 
 1. Publish the final v2 checkpoint or document why it remains local.
 2. Package the final result as a resume/project page.
-3. Move dataset/tokenizer/model-size changes into a separate v3 plan.
+3. Use `docs/V3_PLAN.md` as the starting point for dataset/tokenizer/model-size changes.
 4. Use v3 to target beating GPT-2 across both the project held-out split and external base-LM checks.
