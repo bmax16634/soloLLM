@@ -168,3 +168,16 @@ Start v3 with a data/eval pilot, not a long training run:
 3. train a short 300M-500M token pilot,
 4. evaluate project validation plus capped WikiText/LAMBADA,
 5. choose the final v3 architecture and token budget based on those curves.
+
+## 2026-06-09 Phase 1 Update
+
+The 1B-token v3 pilot corpus is built at `/home/bmx/_projects/soloLLM/data/v3_pilot_1b_1024`.
+
+Phase 1 architecture gate compared:
+
+- `v3-gpt2-scale-1024`: 123,551,232 params, 12x768, 1024 context,
+- `v3-plus-150m-1024`: 151,868,928 params, 16x768, 1024 context.
+
+Both fit on the RTX 3090. The 150M config peaked at `13.76GB` VRAM and about `32.36k` train tokens/sec in a 20-step smoke. It is viable and should be the main v3 candidate if the 50M sanity run confirms healthy learning.
+
+See `docs/results/v3_phase1_architecture_gate.md`.
