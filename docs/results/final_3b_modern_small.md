@@ -232,4 +232,6 @@ The remaining v2 work is packaging, not experimentation:
 
 More training is plausible because validation was still improving, but it should now be treated as v3. The current v2 result is already a complete project outcome: a much smaller model than v1 that beats v1 clearly, gets within about 1% of GPT-2 small on the project held-out test, and documents that GPT-2 remains stronger on broader external checks.
 
+The final v2 closeout suite was rerun end-to-end on June 9, 2026 and finished at `03:24 UTC` with exit status `0`. It reproduced the held-out, generation, external, and multiple-choice diagnostics in one frozen artifact set at `outputs/eval_suites/v2_5p6b_gpt2_full_suite/`. V2 is closed; additional training or architecture changes should be tracked as v3.
+
 The v2-to-v3 gap analysis is documented in `docs/V3_PLAN.md`.

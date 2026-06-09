@@ -48,7 +48,7 @@ Phase 1 is no longer just "run the 50M sanity test." Phase 1 is:
 
 See `docs/PHASE_1_PLAN.md` for the immediate execution plan.
 
-## 2026-06-08 result update
+## 2026-06-09 closeout update
 
 The main v2 experiment is complete enough for portfolio documentation:
 
@@ -60,9 +60,11 @@ The main v2 experiment is complete enough for portfolio documentation:
 | v1 comparison | Complete; best v2 beats v1 by about `16.1%` lower PPL on the full held-out split. |
 | GPT-2 comparison | Complete; best v2 is close but does not beat GPT-2-small on the full held-out split. |
 | 5.60B stretch checkpoint | Full 331M-token held-out eval complete; PPL `25.56`, about `0.95%` above GPT-2 on the same split. |
-| Robust GPT-2 comparison | Complete; fixed generation metrics are close, but GPT-2 leads on WikiText-2 PPL, LAMBADA PPL, and LAMBADA token/word accuracy. |
+| Robust GPT-2 comparison | Complete; the full v3-style suite shows GPT-2 leads on WikiText-2 PPL, LAMBADA PPL, LAMBADA token/word accuracy, all five length-normalized multiple-choice checks, and slightly lower generation repetition. |
 
 The official v2 result should now use the full-evaluated 5.60B stretch checkpoint as the best perplexity checkpoint, while keeping the 3B checkpoint documented as the main planned run. V2 should be closed honestly: it approaches GPT-2 on the project held-out split, but GPT-2 remains stronger across broader external checks. The v3 response is documented in `docs/V3_PLAN.md`.
+
+V2 is now closed for training and evaluation. Remaining v2 work is optional packaging only: publish or archive the checkpoint/model card, and keep the closeout artifacts under `outputs/eval_suites/v2_5p6b_gpt2_full_suite/` as the fixed v2 baseline. New model changes, more training, or new claims should be treated as v3.
 
 ## 1. Summary
 
@@ -902,7 +904,7 @@ Suggested commits:
 
 - Main v2 config is 12x768, not the current 18x1280.
 - Final 3B-token run is complete; the 5.60B stretch checkpoint has also been evaluated on the same full held-out split and is the best v2 perplexity result.
-- Robust comparison checks are complete for v2 5.60B versus GPT-2 small: fixed generation metrics, WikiText-2 perplexity, and capped LAMBADA-style scoring.
+- Robust comparison checks are complete for v2 5.60B versus GPT-2 small: fixed generation metrics, full WikiText-2 perplexity, full LAMBADA scoring, and full validation multiple-choice continuation scoring.
 - Success is honest measurable learning, not impressive chatbot output.
 - v1 should be described as a rough prototype.
 - If metrics are weak, document them honestly and emphasize engineering quality.

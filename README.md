@@ -162,6 +162,8 @@ The 5.60B stretch checkpoint improves over the 3B checkpoint by about `2.7%` low
 
 Additional robust comparison checks were added for the 5.60B checkpoint. On the fixed prompt suite, v2 and GPT-2 have similar diversity metrics, but GPT-2 has slightly lower repeated bigram/trigram rates. On full external corpora, GPT-2 pulls ahead more clearly: WikiText-2 PPL `49.86` vs v2 `84.81`, LAMBADA PPL `42.26` vs v2 `63.03`, LAMBADA last-token accuracy `46.67%` vs v2 `44.30%`, and LAMBADA last-word greedy exact `32.60%` vs v2 `29.09%`. GPT-2 also leads all five length-normalized multiple-choice checks. The honest conclusion is that v2 is very close on the project held-out split, but GPT-2 remains more robust across the board. See [docs/results/v2_gpt2_full_diagnostic.md](docs/results/v2_gpt2_full_diagnostic.md).
 
+The completed v2 closeout suite was rerun end-to-end on June 9, 2026, finishing at `03:24 UTC`. It reproduced the same headline results and is the frozen v2/GPT-2 baseline for v3. Artifacts live under `outputs/eval_suites/v2_5p6b_gpt2_full_suite/`, with generated Markdown reports in `outputs/eval_suites/v2_5p6b_gpt2_full_suite/reports/`.
+
 Run perplexity evaluation:
 
 ```bash

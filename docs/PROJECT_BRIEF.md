@@ -112,6 +112,8 @@ Additional 5.60B comparison checks were added after the full held-out result:
 
 Generation samples, metrics, and the full diagnostic are saved in `docs/results/phase4_generations_5p6b_v2_gpt2.md`, `docs/results/phase4_generation_metrics_5p6b_v2_gpt2.md`, `docs/results/external_benchmarks_5p6b_v2_gpt2_full.md`, `docs/results/multiple_choice_5p6b_v2_gpt2_full.md`, and `docs/results/v2_gpt2_full_diagnostic.md`. They support a sharper conclusion: v2 is close to GPT-2 on the project held-out split, but GPT-2 remains more robust across broader external checks.
 
+The frozen v2 closeout suite completed on June 9, 2026 at `03:24 UTC` and is stored at `outputs/eval_suites/v2_5p6b_gpt2_full_suite/`. That run is the baseline v3 should beat before making any claim stronger than "v2 approached GPT-2 on the project distribution."
+
 ## Current Verification
 
 Run:

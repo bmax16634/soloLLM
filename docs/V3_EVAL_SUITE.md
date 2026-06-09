@@ -58,6 +58,31 @@ V3 should only claim it beats GPT-2 small broadly if it beats GPT-2 small on:
 
 The current v2 5.60B checkpoint and GPT-2 small are the fixed baselines.
 
+## Frozen V2 Baseline Run
+
+The v2 closeout baseline was run with this suite and finished successfully on June 9, 2026 at `03:24 UTC`.
+
+| Item | Value |
+| --- | --- |
+| Candidate | `v2_5p6b` |
+| Baseline | `gpt2` |
+| Output directory | `outputs/eval_suites/v2_5p6b_gpt2_full_suite/` |
+| Report directory | `outputs/eval_suites/v2_5p6b_gpt2_full_suite/reports/` |
+| Suite status | exit status `0` |
+
+Headline results:
+
+| Check | v2 5.60B | GPT-2 small | Result |
+| --- | ---: | ---: | --- |
+| Project held-out PPL | 25.56 | 25.32 | v2 `+0.95%` PPL |
+| WikiText-2 PPL | 84.81 | 49.86 | GPT-2 stronger |
+| LAMBADA PPL | 63.03 | 42.26 | GPT-2 stronger |
+| LAMBADA last-word exact | 29.09% | 32.60% | GPT-2 stronger |
+| Multiple-choice avg acc norm | 38.97% | 41.05% | GPT-2 stronger |
+| Mean repeated bigram fraction | 20.15% | 17.15% | GPT-2 less repetitive |
+
+Use this run as the frozen v2 baseline when judging final v3. V3 needs to beat GPT-2 directly, not only beat v2.
+
 ## Quick Dry Run
 
 To verify commands without running long evals:

@@ -2,6 +2,8 @@
 
 This report consolidates the final v2 diagnostic comparison against GPT-2 small. It uses the 91.65M-param `v2-modern-small` 5.60B checkpoint and GPT-2 small as fixed baselines.
 
+The final closeout suite finished successfully on June 9, 2026 at `03:24 UTC` with exit status `0`. Its artifacts are under `outputs/eval_suites/v2_5p6b_gpt2_full_suite/`. This is the frozen v2/GPT-2 diagnostic baseline for v3.
+
 ## Bottom Line
 
 V2 is close to GPT-2 on the project held-out OpenWebText-style split, but GPT-2 is more robust across external text distributions and multiple-choice continuation tasks.
@@ -74,3 +76,6 @@ V3 should not be only "continue v2 longer." The gaps suggest:
 | Full multiple-choice report | `docs/results/multiple_choice_5p6b_v2_gpt2_full.md` |
 | Fixed generation metrics JSON | `outputs/sologpt_v2/stretch_5p85b_modern_small_from3b/phase4_generation_metrics_5p6b_v2_gpt2.json` |
 | Fixed generation metrics report | `docs/results/phase4_generation_metrics_5p6b_v2_gpt2.md` |
+| Full v3-suite closeout manifest | `outputs/eval_suites/v2_5p6b_gpt2_full_suite/suite_manifest.json` |
+| Full v3-suite closeout log | `outputs/eval_suites/v2_5p6b_gpt2_full_suite/v3_eval_suite_full.log` |
+| Full v3-suite closeout reports | `outputs/eval_suites/v2_5p6b_gpt2_full_suite/reports/` |
