@@ -176,8 +176,9 @@ The 1B-token v3 pilot corpus is built at `/home/bmx/_projects/soloLLM/data/v3_pi
 Phase 1 architecture gate compared:
 
 - `v3-gpt2-scale-1024`: 123,551,232 params, 12x768, 1024 context,
-- `v3-plus-150m-1024`: 151,868,928 params, 16x768, 1024 context.
+- `v3-plus-150m-1024`: 151,868,928 params, 16x768, 1024 context,
+- `v3-plus-180m-1024`: 180,186,624 params, 20x768, 1024 context.
 
-Both fit on the RTX 3090. The 150M config peaked at `13.76GB` VRAM and about `32.36k` train tokens/sec in a 20-step smoke. It is viable and should be the main v3 candidate if the 50M sanity run confirms healthy learning.
+All three fit on the RTX 3090. The 150M config peaked at `13.76GB` VRAM and about `32.36k` train tokens/sec in a 20-step smoke. The 180M config peaked at `15.78GB` VRAM and about `27.20k` train tokens/sec. The 180M config is viable, but it should beat the 150M learning curve in a 50M-token sanity run before becoming the main v3 model.
 
 See `docs/results/v3_phase1_architecture_gate.md`.
