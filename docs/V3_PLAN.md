@@ -1,4 +1,28 @@
-# SoloLLM V3 Plan: Beat GPT-2 Broadly
+# SoloLLM V3 Plan and Closeout: Beat GPT-2 Broadly
+
+## Final Closeout Status
+
+V3 is complete experimentally. The original target was to beat GPT-2 small
+broadly, and the final result has two parts:
+
+| Model | Params | Train tokens | Outcome |
+| --- | ---: | ---: | --- |
+| `v3-plus-150m-1024` | 151,868,928 | 10.00B | Beats GPT-2 small overall on the fixed v3 suite, but is larger than GPT-2. |
+| `v3-gpt2-scale-1024` | 123,551,232 | 9.80B | Slightly smaller than GPT-2 and wins most external checks, but loses project held-out PPL and some generation metrics. |
+
+Final headline:
+
+> SoloLLM v3 trains GPT-2-class base LMs from scratch on one RTX 3090. The 150M
+> model beats GPT-2 small overall on a fixed evaluation suite. The 123M model is
+> slightly smaller than GPT-2 and gets close, but the strict smaller-and-better
+> across-board claim is not fully proven.
+
+The final detailed report is `docs/results/v3_final_gpt2_comparison.md`. The
+retained local artifacts after cleanup are indexed in
+`docs/V3_ARTIFACT_MANIFEST.md`.
+
+The plan below is kept as the historical design rationale that led to the final
+v3 runs.
 
 ## Starting Point
 
@@ -158,6 +182,11 @@ V3 should only claim it beats GPT-2 small if it beats GPT-2 small on:
 If v3 beats GPT-2 on the project held-out split but not on external checks, the honest claim should be:
 
 > V3 beats GPT-2 on the project distribution, but GPT-2 remains more robust out-of-domain.
+
+Final outcome: the 150M model satisfies the broad overall claim, with small
+caveats around PIQA and some generation metrics. The 123M model does not satisfy
+the strict smaller-than-GPT-2 across-board claim because it loses project
+held-out PPL and some generation diversity/repetition diagnostics.
 
 ## Practical Next Step
 

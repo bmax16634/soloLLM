@@ -2,7 +2,7 @@
 
 SoloLLM is a from-scratch GPT-style language model project built in PyTorch. It includes the core pieces needed to train, evaluate, fine-tune, and serve a small decoder-only language model on consumer hardware.
 
-The project is organized as a portfolio case study: `sologpt_v1` is the published baseline, and `sologpt_v2` is the next iteration focused on stronger training infrastructure and a better transformer block.
+The project is organized as a portfolio case study: `sologpt_v1` is the published baseline, `sologpt_v2` is the infrastructure/architecture rebuild, and `sologpt_v3` is the final GPT-2 comparison with a curated 10B-token dataset.
 
 ## Highlights
 
@@ -12,6 +12,8 @@ The project is organized as a portfolio case study: `sologpt_v1` is the publishe
 - Streamlit text-generation demo.
 - Hugging Face model artifact for the published v1 checkpoint.
 - v2 implementation with RoPE attention, tied embeddings, checkpoint metadata, JSONL metrics, validation hooks, gradient clipping, resume support, and CPU smoke tests.
+- v3 10B-token data mixture with FineWeb-Edu, DCLM, FineWeb, Wikipedia, and OpenWebText.
+- Final v3 full eval suite against GPT-2 small across held-out perplexity, WikiText-2, LAMBADA, multiple-choice scoring, and fixed-prompt generation metrics.
 
 ## Repository Layout
 
@@ -31,11 +33,14 @@ The project is organized as a portfolio case study: `sologpt_v1` is the publishe
 | `docs/PHASE_2_PLAN.md` | 300M modern-small pilot plan and completion status. |
 | `docs/PHASE_4_EVAL_PLAN.md` | Final robust comparison plan beyond perplexity alone. |
 | `docs/V3_PLAN.md` | V2-to-GPT-2 gap analysis and v3 plan. |
+| `docs/V3_DATA_PLAN.md` | V3 data mixture, final 10B dataset stats, and training split. |
 | `docs/V3_EVAL_SUITE.md` | Executable v3 eval suite runner and usage. |
+| `docs/V3_ARTIFACT_MANIFEST.md` | Canonical local artifacts retained after v3 closeout and checkpoint cleanup. |
 | `docs/results/phase1_50m_sanity.md` | Completed 50M sanity results and Phase 1 decision. |
 | `docs/results/phase2_300m_pilot.md` | Completed 300M pilot results and Phase 2 decision. |
 | `docs/results/final_3b_modern_small.md` | Final v2 3B-token training and Phase 4 evaluation results. |
 | `docs/results/v2_gpt2_full_diagnostic.md` | Full v2 5.60B vs GPT-2 diagnostic across held-out, external, generation, and multiple-choice evals. |
+| `docs/results/v3_final_gpt2_comparison.md` | Final v3 150M and 123M comparison against GPT-2 small. |
 | `docs/results/phase4_generations.md` | Fixed qualitative generation samples for v1, v2, and GPT-2. |
 | `tests/` | CPU-safe smoke tests and tiny v2 config. |
 
@@ -48,6 +53,8 @@ Generated datasets, checkpoints, training logs, and model weights are intentiona
 | `sologpt_v1` | Published baseline | Custom GPT-style decoder with learned token embeddings, sinusoidal positional encoding, causal self-attention, and MLP blocks. |
 | `v2-gpt2-parity` | 50M sanity complete | 123,616,512-param GPT-2-small-scale control with RoPE, pre-norm blocks, tied embeddings, CLI training, and fair-eval path. |
 | `v2-modern-small` | Final + stretch runs complete | 91,654,400-param modern-small config with RMSNorm, SwiGLU, RoPE, tied embeddings, 5.60B-checkpoint full held-out PPL 25.56, and clear improvement over v1. |
+| `v3-gpt2-scale-1024` | Final 10B run complete | 123,551,232-param 1024-context model, slightly smaller than GPT-2 small; beats GPT-2 on most external checks but not project held-out PPL. |
+| `v3-plus-150m-1024` | Final best v3 model | 151,868,928-param 1024-context model trained on the curated 10B dataset; beats GPT-2 small overall on the fixed v3 suite. |
 
 Published v1 artifact:
 
@@ -137,6 +144,16 @@ python -m sologpt_v2.pretrain \
 ```
 
 ## Evaluation
+
+Final v3 closeout results:
+
+| Model | Params | Train tokens | Held-out PPL | WikiText-2 PPL | LAMBADA PPL | MC avg acc norm | Read |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| GPT-2 small | 124.44M | external/public | 25.32 | 45.32 | 40.62 | 41.05% | Reference baseline |
+| `v3-gpt2-scale-1024` | 123.55M | 9.80B | 25.64 | 41.87 | 36.28 | 42.46% | Smaller than GPT-2; wins most external checks, but not across the board |
+| `v3-plus-150m-1024` | 151.87M | 10.00B | 24.90 | 41.18 | 35.35 | 42.71% | Final best model; beats GPT-2 overall |
+
+The final project claim is deliberately narrow: SoloLLM v3 trains GPT-2-class base LMs from scratch on one RTX 3090, and the 150M v3 model beats GPT-2 small overall on the fixed suite. The 123M model is slightly smaller than GPT-2 and wins many external benchmarks, but it does not beat GPT-2 across every metric. See [docs/results/v3_final_gpt2_comparison.md](docs/results/v3_final_gpt2_comparison.md).
 
 Final Phase 4 held-out perplexity on reserved shards `58:60`:
 
@@ -242,9 +259,11 @@ outputs/finetuned_sologpt_combined_best.pth
 
 Model checkpoints are not committed to Git. Place a compatible `.pth`, `.bin`, or `.safetensors` checkpoint in `outputs/`, or adapt `sologpt_v1/generate.py` to load from a Hugging Face download path.
 
-## V2 Direction
+## Project Direction
 
-The next portfolio iteration is tracked in [docs/V2_PLAN.md](docs/V2_PLAN.md). The practical goal is to make v2 a clear improvement over v1 in three visible ways:
+V2 and v3 are both complete as experiments. V2 is tracked in [docs/V2_PLAN.md](docs/V2_PLAN.md), and v3 closeout is tracked in [docs/V3_PLAN.md](docs/V3_PLAN.md), [docs/results/v3_final_gpt2_comparison.md](docs/results/v3_final_gpt2_comparison.md), and [docs/V3_ARTIFACT_MANIFEST.md](docs/V3_ARTIFACT_MANIFEST.md).
+
+The practical v2 goal was to make a clear improvement over v1 in three visible ways:
 
 1. Better architecture: RoPE, cleaner attention implementation, optional tied embeddings, and stronger defaults.
 2. Better training system: config-driven paths, resumable checkpoints, structured metrics, validation, and cleaner failure recovery.
@@ -258,7 +277,9 @@ Phase 2 results are recorded in [docs/results/phase2_300m_pilot.md](docs/results
 
 The final v2 run is recorded in [docs/results/final_3b_modern_small.md](docs/results/final_3b_modern_small.md). The 3B-token run completed on a single RTX 3090 with final validation PPL `26.13`, full held-out test PPL `26.26`, and average throughput about `50k tok/s`. A durable 5.60B stretch checkpoint later reached full held-out test PPL `25.56`.
 
-The v3 direction is recorded in [docs/V3_PLAN.md](docs/V3_PLAN.md). It documents what the v2 gaps to GPT-2 show, how v3 should address them, and why the v2 eval suite should be reused but expanded before claiming v3 beats GPT-2 across the board.
+The final v3 result is recorded in [docs/results/v3_final_gpt2_comparison.md](docs/results/v3_final_gpt2_comparison.md). The 150M v3 model is the best final checkpoint and beats GPT-2 small overall on the fixed suite. The 123M v3 model is slightly smaller than GPT-2 and wins most external checks, but it does not clear the strict across-board smaller-than-GPT-2 bar.
+
+The v3 closeout is recorded in [docs/V3_PLAN.md](docs/V3_PLAN.md). It documents what the v2 gaps to GPT-2 showed, how v3 addressed them, and why the final result should be framed as a 150M overall win plus a 123M smaller-model ablation rather than an across-board smaller-than-GPT-2 win.
 
 ## License
 

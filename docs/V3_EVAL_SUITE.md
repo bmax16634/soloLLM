@@ -34,6 +34,30 @@ The full suite contains:
 | External PPL/LAMBADA | `eval/external_benchmarks.py` | full WikiText-2 and LAMBADA report |
 | Multiple-choice scoring | `eval/multiple_choice_benchmarks.py` | HellaSwag, PIQA, ARC-Easy, ARC-Challenge, WinoGrande report |
 
+## Final V3 Runs
+
+The final v3 suite was run for both the best 150M checkpoint and the smaller
+123M ablation.
+
+| Run | Candidate | Output directory | Status |
+| --- | --- | --- | --- |
+| v3 150M final | `v3_fresh_10b_150m_10bdata` | `outputs/eval_suites/v3_fresh_10b_150m_10bdata_gpt2_full_suite/` | complete |
+| v3 123M final | `v3_fresh_10b_123m_10bdata` | `outputs/eval_suites/v3_fresh_10b_123m_10bdata_gpt2_full_suite/` | complete |
+
+Headline results:
+
+| Check | GPT-2 small | v3 123M | v3 150M | Read |
+| --- | ---: | ---: | ---: | --- |
+| Project held-out PPL | 25.32 | 25.64 | 24.90 | 150M wins; 123M narrowly loses |
+| WikiText-2 PPL | 45.32 | 41.87 | 41.18 | both v3 models win |
+| LAMBADA PPL | 40.62 | 36.28 | 35.35 | both v3 models win |
+| LAMBADA last-word exact | 32.60% | 32.80% | 33.07% | both v3 models win slightly |
+| Multiple-choice avg acc norm | 41.05% | 42.46% | 42.71% | both v3 models win |
+| Mean repeated bigram fraction | 17.15% | 18.05% | 17.23% | GPT-2 remains slightly less repetitive |
+
+The final report is `docs/results/v3_final_gpt2_comparison.md`. The retained
+local eval outputs are also indexed in `docs/V3_ARTIFACT_MANIFEST.md`.
+
 Run only selected components with `--components`:
 
 ```bash
@@ -57,6 +81,11 @@ V3 should only claim it beats GPT-2 small broadly if it beats GPT-2 small on:
 - generation repetition metrics without worse qualitative samples.
 
 The current v2 5.60B checkpoint and GPT-2 small are the fixed baselines.
+
+Final outcome: the 150M checkpoint supports the broad overall GPT-2 comparison
+claim, with caveats. The 123M checkpoint supports a strong smaller-model ablation
+but not the strict claim that a smaller-than-GPT-2 model beats GPT-2 across every
+metric.
 
 ## Frozen V2 Baseline Run
 
