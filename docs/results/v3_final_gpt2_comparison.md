@@ -174,6 +174,7 @@ It should not claim:
 
 | Artifact | Path |
 | --- | --- |
+| SoloLLM Hugging Face collection | <https://huggingface.co/collections/bmax16634/solollm> |
 | v3 150M Hugging Face model | <https://huggingface.co/bmax16634/sologpt-v3-150m-base> |
 | v3 123M Hugging Face ablation | <https://huggingface.co/bmax16634/sologpt-v3-123m-base> |
 | Public completion demo | <https://huggingface.co/spaces/bmax16634/sologpt-v3-150m-demo> |

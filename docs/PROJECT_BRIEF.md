@@ -150,6 +150,7 @@ Published artifacts:
 
 | Artifact | Link |
 | --- | --- |
+| SoloLLM Hugging Face collection | <https://huggingface.co/collections/bmax16634/solollm> |
 | Final v3 150M base model | <https://huggingface.co/bmax16634/sologpt-v3-150m-base> |
 | v3 123M smaller-model ablation | <https://huggingface.co/bmax16634/sologpt-v3-123m-base> |
 | Public v3 completion demo | <https://huggingface.co/spaces/bmax16634/sologpt-v3-150m-demo> |
