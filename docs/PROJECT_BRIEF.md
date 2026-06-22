@@ -146,6 +146,14 @@ The final v3 report is `docs/results/v3_final_gpt2_comparison.md`. The retained
 local datasets, checkpoints, metrics, and eval outputs are indexed in
 `docs/V3_ARTIFACT_MANIFEST.md`.
 
+Published artifacts:
+
+| Artifact | Link |
+| --- | --- |
+| Final v3 150M base model | <https://huggingface.co/bmax16634/sologpt-v3-150m-base> |
+| v3 123M smaller-model ablation | <https://huggingface.co/bmax16634/sologpt-v3-123m-base> |
+| Public v3 completion demo | <https://huggingface.co/spaces/bmax16634/sologpt-v3-150m-demo> |
+
 ## Current Verification
 
 Run:
@@ -177,5 +185,6 @@ Case-study version:
 
 ## Remaining Work
 
-1. Package the final result as a resume/project page.
-2. Decide whether the final 150M and 123M checkpoints stay local or get published externally.
+The v3 closeout, result docs, Hugging Face model repos, and public demo are
+complete. Future work should be treated as a new project phase rather than a v3
+requirement.

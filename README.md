@@ -10,7 +10,7 @@ The project is organized as a portfolio case study: `sologpt_v1` is the publishe
 - OpenWebText tokenization and sharded pretraining pipeline.
 - Perplexity evaluation against a held-out OpenWebText shard.
 - Streamlit text-generation demo.
-- Hugging Face model artifact for the published v1 checkpoint.
+- Hugging Face model repos for the final v3 checkpoints and public completion demo.
 - v2 implementation with RoPE attention, tied embeddings, checkpoint metadata, JSONL metrics, validation hooks, gradient clipping, resume support, and CPU smoke tests.
 - v3 10B-token data mixture with FineWeb-Edu, DCLM, FineWeb, Wikipedia, and OpenWebText.
 - Final v3 full eval suite against GPT-2 small across held-out perplexity, WikiText-2, LAMBADA, multiple-choice scoring, and fixed-prompt generation metrics.
@@ -56,9 +56,15 @@ Generated datasets, checkpoints, training logs, and model weights are intentiona
 | `v3-gpt2-scale-1024` | Final 10B run complete | 123,551,232-param 1024-context model, slightly smaller than GPT-2 small; beats GPT-2 on most external checks but not project held-out PPL. |
 | `v3-plus-150m-1024` | Final best v3 model | 151,868,928-param 1024-context model trained on the curated 10B dataset; beats GPT-2 small overall on the fixed v3 suite. |
 
-Published v1 artifact:
+Published Hugging Face artifacts:
 
-- Hugging Face: <https://huggingface.co/bmax16634/sologpt-base-v1>
+| Artifact | Link |
+| --- | --- |
+| Final v3 150M base model | <https://huggingface.co/bmax16634/sologpt-v3-150m-base> |
+| v3 123M smaller-model ablation | <https://huggingface.co/bmax16634/sologpt-v3-123m-base> |
+| Public v3 completion demo | <https://huggingface.co/spaces/bmax16634/sologpt-v3-150m-demo> |
+| Legacy v1 baseline model | <https://huggingface.co/bmax16634/sologpt-base-v1> |
+| Legacy v1 baseline demo | <https://huggingface.co/spaces/bmax16634/sologpt-base-v1-demo> |
 
 ## Setup
 
@@ -244,6 +250,10 @@ python -m eval.multiple_choice_benchmarks \
 ```
 
 ## Generation Demo
+
+Public v3 demo:
+
+- <https://huggingface.co/spaces/bmax16634/sologpt-v3-150m-demo>
 
 Run the Streamlit demo:
 

@@ -174,6 +174,9 @@ It should not claim:
 
 | Artifact | Path |
 | --- | --- |
+| v3 150M Hugging Face model | <https://huggingface.co/bmax16634/sologpt-v3-150m-base> |
+| v3 123M Hugging Face ablation | <https://huggingface.co/bmax16634/sologpt-v3-123m-base> |
+| Public completion demo | <https://huggingface.co/spaces/bmax16634/sologpt-v3-150m-demo> |
 | v3 123M config | `sologpt_v3/config_gpt2_scale_1024.json` |
 | v3 150M config | `sologpt_v3/config_plus_150m_1024.json` |
 | v3 data manifest | `sologpt_v3/data_sources.yaml` |

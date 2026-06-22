@@ -24,6 +24,20 @@ training tokens, and final held-out PPL 25.636956381474878. It is slightly
 smaller than GPT-2 small and wins most external checks, but it does not beat
 GPT-2 across every metric.
 
+## Published Hugging Face Artifacts
+
+| Artifact | URL |
+| --- | --- |
+| Final v3 150M base model | <https://huggingface.co/bmax16634/sologpt-v3-150m-base> |
+| v3 123M smaller-model ablation | <https://huggingface.co/bmax16634/sologpt-v3-123m-base> |
+| Public v3 completion demo | <https://huggingface.co/spaces/bmax16634/sologpt-v3-150m-demo> |
+| Legacy v1 baseline model | <https://huggingface.co/bmax16634/sologpt-base-v1> |
+| Legacy v1 baseline demo | <https://huggingface.co/spaces/bmax16634/sologpt-base-v1-demo> |
+
+The v3 model repos include `model.safetensors`, model cards, tokenizer files,
+and custom Hugging Face `AutoModelForCausalLM` remote-code wrappers. Load with
+`trust_remote_code=True`.
+
 ## Dataset
 
 | Artifact | Path |

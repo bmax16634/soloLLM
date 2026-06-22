@@ -84,6 +84,9 @@ The final honest claim:
 
 ## Key Artifacts
 
+- Final 150M Hugging Face model: <https://huggingface.co/bmax16634/sologpt-v3-150m-base>
+- 123M Hugging Face ablation: <https://huggingface.co/bmax16634/sologpt-v3-123m-base>
+- Public completion demo: <https://huggingface.co/spaces/bmax16634/sologpt-v3-150m-demo>
 - Final report: `docs/results/v3_final_gpt2_comparison.md`
 - Artifact manifest: `docs/V3_ARTIFACT_MANIFEST.md`
 - V3 plan and closeout: `docs/V3_PLAN.md`
