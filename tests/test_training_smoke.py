@@ -10,6 +10,7 @@ import torch
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_CONFIG = REPO_ROOT / "tests" / "fixtures" / "v2_tiny_config.json"
 MODERN_FIXTURE_CONFIG = REPO_ROOT / "tests" / "fixtures" / "v2_tiny_modern_config.json"
+GQA_FIXTURE_CONFIG = REPO_ROOT / "tests" / "fixtures" / "v2_tiny_gqa_config.json"
 
 
 def run_command(command):
@@ -112,6 +113,36 @@ def test_v2_modern_training_dry_run_writes_artifacts(tmp_path):
             "sologpt_v2.pretrain",
             "--config",
             str(MODERN_FIXTURE_CONFIG),
+            "--shard-dir",
+            str(shard_dir),
+            "--output-dir",
+            str(run_dir),
+            "--device",
+            "cpu",
+            "--dry-run",
+            "--max-steps",
+            "1",
+            "--no-progress",
+        ]
+    )
+
+    assert (run_dir / "metrics.jsonl").is_file()
+    assert (run_dir / "metrics_summary.json").is_file()
+    assert (run_dir / "checkpoints" / "latest.pt").is_file()
+
+
+def test_v2_gqa_training_dry_run_writes_artifacts(tmp_path):
+    shard_dir = tmp_path / "shards"
+    run_dir = tmp_path / "gqa_run"
+    make_tiny_shard(shard_dir)
+
+    run_command(
+        [
+            sys.executable,
+            "-m",
+            "sologpt_v2.pretrain",
+            "--config",
+            str(GQA_FIXTURE_CONFIG),
             "--shard-dir",
             str(shard_dir),
             "--output-dir",

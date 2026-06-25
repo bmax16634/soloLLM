@@ -75,7 +75,7 @@ class RotaryEmbedding(nn.Module):
 
 
 class CausalSelfAttentionRoPE(nn.Module):
-    """Multi-head causal self-attention with RoPE on query/key states."""
+    """Causal self-attention with RoPE and optional grouped-query attention."""
 
     def __init__(
         self,
@@ -85,6 +85,7 @@ class CausalSelfAttentionRoPE(nn.Module):
         rope_base: float = 10000.0,
         qkv_bias: bool = False,
         proj_bias: bool = False,
+        n_kv_heads: int | None = None,
     ) -> None:
         super().__init__()
         if embed_dim % n_heads != 0:
@@ -92,19 +93,47 @@ class CausalSelfAttentionRoPE(nn.Module):
 
         self.embed_dim = int(embed_dim)
         self.n_heads = int(n_heads)
+        self.n_kv_heads = int(n_kv_heads or n_heads)
+        if self.n_kv_heads <= 0:
+            raise ValueError(f"n_kv_head must be positive, got {self.n_kv_heads}")
+        if self.n_heads % self.n_kv_heads != 0:
+            raise ValueError(
+                f"n_head ({self.n_heads}) must be divisible by n_kv_head ({self.n_kv_heads})"
+            )
         self.head_dim = self.embed_dim // self.n_heads
         if self.head_dim % 2 != 0:
             raise ValueError(
                 f"RoPE requires an even head dimension, got {self.head_dim} "
                 f"from n_embd={embed_dim}, n_head={n_heads}"
             )
+        self.kv_group_size = self.n_heads // self.n_kv_heads
 
-        self.qkv = nn.Linear(self.embed_dim, 3 * self.embed_dim, bias=bool(qkv_bias))
+        if self.n_kv_heads == self.n_heads:
+            self.qkv = nn.Linear(self.embed_dim, 3 * self.embed_dim, bias=bool(qkv_bias))
+            self.q_proj = None
+            self.k_proj = None
+            self.v_proj = None
+        else:
+            kv_dim = self.n_kv_heads * self.head_dim
+            self.qkv = None
+            self.q_proj = nn.Linear(self.embed_dim, self.embed_dim, bias=bool(qkv_bias))
+            self.k_proj = nn.Linear(self.embed_dim, kv_dim, bias=bool(qkv_bias))
+            self.v_proj = nn.Linear(self.embed_dim, kv_dim, bias=bool(qkv_bias))
         self.proj = nn.Linear(self.embed_dim, self.embed_dim, bias=bool(proj_bias))
         self.proj._is_residual_projection = True
         self.dropout = float(dropout)
         self.resid_drop = nn.Dropout(dropout)
         self.rope = RotaryEmbedding(self.head_dim, base=rope_base)
+
+    def _repeat_kv(self, x: torch.Tensor) -> torch.Tensor:
+        if self.kv_group_size == 1:
+            return x
+        batch_size, n_kv_heads, seq_len, head_dim = x.shape
+        return (
+            x[:, :, None, :, :]
+            .expand(batch_size, n_kv_heads, self.kv_group_size, seq_len, head_dim)
+            .reshape(batch_size, self.n_heads, seq_len, head_dim)
+        )
 
     def _manual_attention(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
         seq_len = q.size(-2)
@@ -121,13 +150,23 @@ class CausalSelfAttentionRoPE(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         batch_size, seq_len, channels = x.shape
 
-        qkv = self.qkv(x)
-        q, k, v = qkv.split(channels, dim=-1)
-        q = q.view(batch_size, seq_len, self.n_heads, self.head_dim).transpose(1, 2)
-        k = k.view(batch_size, seq_len, self.n_heads, self.head_dim).transpose(1, 2)
-        v = v.view(batch_size, seq_len, self.n_heads, self.head_dim).transpose(1, 2)
+        if self.qkv is not None:
+            qkv = self.qkv(x)
+            q, k, v = qkv.split(channels, dim=-1)
+            q = q.view(batch_size, seq_len, self.n_heads, self.head_dim).transpose(1, 2)
+            k = k.view(batch_size, seq_len, self.n_heads, self.head_dim).transpose(1, 2)
+            v = v.view(batch_size, seq_len, self.n_heads, self.head_dim).transpose(1, 2)
+        else:
+            assert self.q_proj is not None
+            assert self.k_proj is not None
+            assert self.v_proj is not None
+            q = self.q_proj(x).view(batch_size, seq_len, self.n_heads, self.head_dim).transpose(1, 2)
+            k = self.k_proj(x).view(batch_size, seq_len, self.n_kv_heads, self.head_dim).transpose(1, 2)
+            v = self.v_proj(x).view(batch_size, seq_len, self.n_kv_heads, self.head_dim).transpose(1, 2)
 
         q, k = self.rope(q, k)
+        k = self._repeat_kv(k)
+        v = self._repeat_kv(v)
 
         if hasattr(F, "scaled_dot_product_attention"):
             attn = F.scaled_dot_product_attention(
@@ -216,6 +255,7 @@ class DecoderLayer(nn.Module):
         dropout: float,
         rope_base: float,
         qkv_bias: bool,
+        n_kv_heads: int,
         norm_type: str,
         mlp_type: str,
         use_bias: bool | None,
@@ -231,6 +271,7 @@ class DecoderLayer(nn.Module):
             rope_base=rope_base,
             qkv_bias=qkv_bias,
             proj_bias=proj_bias,
+            n_kv_heads=n_kv_heads,
         )
         self.norm2 = make_norm(norm_type, embed_dim)
         self.ff = FeedForward(
@@ -257,6 +298,7 @@ class DecoderBlock(nn.Module):
         dropout: float,
         rope_base: float,
         qkv_bias: bool,
+        n_kv_heads: int,
         norm_type: str,
         mlp_type: str,
         use_bias: bool | None,
@@ -271,6 +313,7 @@ class DecoderBlock(nn.Module):
                     dropout=dropout,
                     rope_base=rope_base,
                     qkv_bias=qkv_bias,
+                    n_kv_heads=n_kv_heads,
                     norm_type=norm_type,
                     mlp_type=mlp_type,
                     use_bias=use_bias,
@@ -297,6 +340,7 @@ class SoloGPT_v2(nn.Module):
 
         self.embed_dim = int(config["n_embd"])
         self.n_heads = int(config["n_head"])
+        self.n_kv_heads = int(config.get("n_kv_head", config.get("num_key_value_heads", self.n_heads)))
         self.n_layers = int(config["n_layer"])
         self.dropout = float(config.get("dropout", 0.1))
         self.vocab_size = int(config["vocab_size"])
@@ -325,6 +369,7 @@ class SoloGPT_v2(nn.Module):
             dropout=self.dropout,
             rope_base=self.rope_base,
             qkv_bias=self.qkv_bias,
+            n_kv_heads=self.n_kv_heads,
             norm_type=self.norm_type,
             mlp_type=self.mlp_type,
             use_bias=self.use_bias,
@@ -378,6 +423,7 @@ class SoloGPT_v2(nn.Module):
             "n_embd": self.embed_dim,
             "n_layer": self.n_layers,
             "n_head": self.n_heads,
+            "n_kv_head": self.n_kv_heads,
             "max_seq_len": self.max_seq_len,
             "dropout": self.dropout,
             "rope_base": self.rope_base,

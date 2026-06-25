@@ -179,3 +179,21 @@ Implement the Phase 1 architecture proxy:
 2. Add grouped-query attention support if the current model does not support it.
 3. Run a tiny forward/training smoke test.
 4. Launch a controlled proxy run against the v3-style proxy.
+
+## Phase 1 Implementation Artifacts
+
+Added for the first controlled architecture proxy:
+
+- v3-style control config: `sologpt_v3/config_proxy_v3_style_60m_1024.json`
+- SmolLM2-style candidate config: `sologpt_v3/config_proxy_smollm2_style_60m_1024.json`
+- paired runner: `scripts/run_v4_phase1_proxy_pair_notify.sh`
+- result report path: `docs/results/v4_phase1_proxy_architecture_300m.md`
+
+Both proxy configs are matched at about 57M parameters:
+
+| Proxy | Shape | Params |
+|---|---|---:|
+| v3-style proxy | 10 layers, 512 hidden, 8 heads, full MHA | 57.12M |
+| SmolLM2-style proxy | 24 layers, 384 hidden, 6 heads, 2 KV heads | 57.07M |
+
+The runner trains both models sequentially on the same 300M-token budget and writes a comparison report from their validation summaries.
