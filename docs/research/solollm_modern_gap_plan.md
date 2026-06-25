@@ -197,3 +197,20 @@ Both proxy configs are matched at about 57M parameters:
 | SmolLM2-style proxy | 24 layers, 384 hidden, 6 heads, 2 KV heads | 57.07M |
 
 The runner trains both models sequentially on the same 300M-token budget and writes a comparison report from their validation summaries.
+
+## Phase 1 Result
+
+The 300M-token architecture proxy did not support switching to the deeper/narrower shape by itself.
+
+| Proxy | Params | Best val loss | Best val PPL | Tok/s | Peak GB |
+|---|---:|---:|---:|---:|---:|
+| v3-style proxy | 57.12M | 4.1530 | 63.63 | 72.2k | 12.3 |
+| SmolLM2-style proxy | 57.07M | 4.1723 | 64.86 | 53.9k | 15.3 |
+
+The SmolLM2-style proxy reached slightly lower final train loss, but the v3-style proxy had better validation loss and perplexity while training faster and using less memory.
+
+Decision:
+
+- Do not switch the final architecture solely to the deeper/narrower GQA proxy.
+- Treat SmolLM2's advantage as more likely coming from data quality/mix, tokenizer/context, recipe, or the interaction of those factors with architecture.
+- Move the next controlled experiment toward data quality/mix while keeping the v3-style shape as the stronger local baseline.
