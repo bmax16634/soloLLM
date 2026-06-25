@@ -88,6 +88,15 @@ def first_text_field(example: dict[str, Any], preferred: str | None) -> str | No
     return None
 
 
+def example_value(example: dict[str, Any], key: str) -> Any:
+    if key in example:
+        return example[key]
+    metadata = example.get("metadata")
+    if isinstance(metadata, dict):
+        return metadata.get(key)
+    return None
+
+
 def passes_filters(
     text: str,
     example: dict[str, Any],
@@ -100,13 +109,13 @@ def passes_filters(
     if len(text) > max_chars:
         return False, "too_long"
 
-    language = example.get("language")
+    language = example_value(example, "language")
     if isinstance(language, str) and language and language.lower() not in {"en", "eng", "english"}:
         return False, "non_english"
 
     min_language_score = filters.get("min_language_score")
     if min_language_score is not None:
-        score = example.get("language_score")
+        score = example_value(example, "language_score")
         if isinstance(score, (int, float)) and float(score) < float(min_language_score):
             return False, "low_language_score"
 
@@ -340,7 +349,8 @@ def build(args: argparse.Namespace) -> int:
             global_counts["missing_text"] += 1
             continue
         text = normalize_text(text)
-        ok, reason = passes_filters(text, example, manifest.get("filters", {}))
+        active_filters = {**manifest.get("filters", {}), **state.config.get("filters", {})}
+        ok, reason = passes_filters(text, example, active_filters)
         if not ok:
             state.filter_counts[reason] += 1
             global_counts[reason] += 1

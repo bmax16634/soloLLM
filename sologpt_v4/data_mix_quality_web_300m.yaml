@@ -1,0 +1,60 @@
+version: 1
+description: "SoloLLM v4 data proxy: cleaner high-quality web mix"
+tokenizer: gpt2
+seq_length: 1024
+target_tokens: 300000000
+shard_tokens: 8388608
+split:
+  train: 0.98
+  val: 0.01
+  test: 0.01
+filters:
+  min_chars: 200
+  max_chars: 200000
+  min_alpha_ratio: 0.45
+  max_repeated_line_fraction: 0.35
+  min_language_score: 0.65
+streaming:
+  shuffle_buffer: 0
+  seed: 2027
+sources:
+  - id: smollm_fineweb_edu_dedup
+    enabled: true
+    weight: 0.45
+    dataset: HuggingFaceTB/smollm-corpus
+    config: fineweb-edu-dedup
+    split: train
+    text_field: text
+    notes: "Deduplicated high-quality educational web text from SmolLM-Corpus."
+  - id: dclm_baseline
+    enabled: true
+    weight: 0.25
+    dataset: mlfoundations/dclm-baseline-1.0-parquet
+    config: null
+    split: train
+    text_field: text
+    notes: "Curated web baseline from DataComp-LM."
+  - id: fineweb_sample_10bt
+    enabled: true
+    weight: 0.15
+    dataset: HuggingFaceFW/fineweb
+    config: sample-10BT
+    split: train
+    text_field: text
+    notes: "Broad web coverage to avoid over-specializing on educational prose."
+  - id: wikipedia_en_20231101
+    enabled: true
+    weight: 0.10
+    dataset: wikimedia/wikipedia
+    config: 20231101.en
+    split: train
+    text_field: text
+    notes: "Reference/encyclopedic prose for factual continuity."
+  - id: openwebtext
+    enabled: true
+    weight: 0.05
+    dataset: Skylion007/openwebtext
+    config: plain_text
+    split: train
+    text_field: text
+    notes: "Small amount of legacy project distribution."
