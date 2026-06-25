@@ -1,4 +1,4 @@
-"""Run lightweight multiple-choice base-LM benchmarks for v2 and GPT-2."""
+"""Run lightweight multiple-choice base-LM benchmarks for SoloLLM and HF models."""
 
 from __future__ import annotations
 
@@ -12,16 +12,14 @@ from typing import Any
 
 import torch
 from tqdm import tqdm
-from transformers import GPT2Tokenizer
-
-
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from eval.eval import resolve_device, resolve_path
-from eval.external_benchmarks import DEFAULT_V2_CHECKPOINT, DEFAULT_V2_CONFIG, load_model, model_logits
+from eval.external_benchmarks import DEFAULT_V2_CHECKPOINT, DEFAULT_V2_CONFIG
+from eval.model_registry import load_eval_model, model_logits
 
 
 BENCHMARKS = ["hellaswag", "piqa", "arc_easy", "arc_challenge", "winogrande"]
@@ -29,7 +27,12 @@ BENCHMARKS = ["hellaswag", "piqa", "arc_easy", "arc_challenge", "winogrande"]
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run multiple-choice base-LM comparisons")
-    parser.add_argument("--models", nargs="+", default=["v2", "gpt2"], choices=["v2", "gpt2"])
+    parser.add_argument(
+        "--models",
+        nargs="+",
+        default=["v2", "gpt2"],
+        help="Model specs: v2, gpt2, distilgpt2, hf:org/model, or label=hf:org/model",
+    )
     parser.add_argument("--benchmarks", nargs="+", default=BENCHMARKS, choices=BENCHMARKS)
     parser.add_argument("--v2-checkpoint", default=str(DEFAULT_V2_CHECKPOINT))
     parser.add_argument("--v2-config", default=str(DEFAULT_V2_CONFIG))
@@ -37,14 +40,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--device", choices=["cpu", "cuda", "mps"], default=None)
     parser.add_argument("--context-length", type=int, default=512)
     parser.add_argument("--max-examples", type=int, default=0, help="0 means full validation split")
+    parser.add_argument("--trust-remote-code", action="store_true", help="Allow HF custom model code")
     parser.add_argument("--output-json", required=True)
     parser.add_argument("--output-md", default=None)
     parser.add_argument("--no-progress", action="store_true")
     return parser.parse_args(argv)
-
-
-def display_name(model_name: str, *, v2_label: str) -> str:
-    return v2_label if model_name == "v2" else model_name
 
 
 def add_leading_space(text: str) -> str:
@@ -150,7 +150,7 @@ def load_examples(benchmark: str) -> list[dict[str, Any]]:
 
 def score_continuation(
     model: torch.nn.Module,
-    tokenizer: GPT2Tokenizer,
+    tokenizer: Any,
     context: str,
     continuation: str,
     *,
@@ -188,7 +188,7 @@ def score_continuation(
 @torch.no_grad()
 def evaluate_benchmark(
     model: torch.nn.Module,
-    tokenizer: GPT2Tokenizer,
+    tokenizer: Any,
     benchmark: str,
     examples: list[dict[str, Any]],
     *,
@@ -266,7 +266,7 @@ def write_markdown(path: Path, result: dict[str, Any]) -> None:
     lines = [
         "# Multiple-Choice Base-LM Benchmark Results",
         "",
-        "Choices are scored by conditional log-likelihood under the base LM. `accuracy_norm` uses average log-probability per continuation token to reduce length bias.",
+        "Choices are scored by conditional log-likelihood under each base LM's native tokenizer. `accuracy_norm` uses average log-probability per continuation token to reduce length bias.",
         "",
         f"- Context length: `{result['settings']['context_length']}`",
         f"- Max examples: `{format_max_examples(result['settings']['max_examples'])}`",
@@ -297,8 +297,6 @@ def write_markdown(path: Path, result: dict[str, Any]) -> None:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     device = resolve_device(args.device)
-    tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-    tokenizer.pad_token = tokenizer.eos_token
 
     loaded_examples: dict[str, list[dict[str, Any]]] = {}
     for benchmark in args.benchmarks:
@@ -310,20 +308,25 @@ def main(argv: list[str] | None = None) -> int:
     started = time.time()
     models: dict[str, dict[str, Any]] = {}
     results: list[dict[str, Any]] = []
-    for model_name in args.models:
-        label = display_name(model_name, v2_label=args.v2_label)
-        model, metadata = load_model(
-            model_name,
+    for model_spec in args.models:
+        loaded_model = load_eval_model(
+            model_spec,
             device=device,
             v2_checkpoint=resolve_path(args.v2_checkpoint, Path.cwd()),
             v2_config=resolve_path(args.v2_config, Path.cwd()),
+            v2_label=args.v2_label,
+            trust_remote_code=args.trust_remote_code,
         )
+        label = loaded_model.label
+        model = loaded_model.model
+        tokenizer = loaded_model.tokenizer
+        metadata = loaded_model.metadata
         models[label] = metadata
         for benchmark in args.benchmarks:
             results.append(
                 {
                     "model": label,
-                    "model_loader": model_name,
+                    "model_loader": loaded_model.loader,
                     **evaluate_benchmark(
                         model,
                         tokenizer,
@@ -345,6 +348,7 @@ def main(argv: list[str] | None = None) -> int:
             "device": device.type,
             "context_length": args.context_length,
             "max_examples": args.max_examples,
+            "tokenizer_policy": "native_per_model",
         },
         "models": models,
         "results": results,

@@ -1,4 +1,4 @@
-"""Run lightweight external base-LM comparisons for SoloGPT v2 and GPT-2."""
+"""Run lightweight external base-LM comparisons for SoloLLM and HF models."""
 
 from __future__ import annotations
 
@@ -13,16 +13,13 @@ from typing import Any
 
 import torch
 from tqdm import tqdm
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
-
-
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from eval.eval import load_checkpoint_state, load_json, resolve_device, resolve_path
-from sologpt_v2.model import SoloGPT_v2
+from eval.eval import resolve_device, resolve_path
+from eval.model_registry import load_eval_model, model_logits
 
 
 DEFAULT_V2_CHECKPOINT = (
@@ -38,51 +35,25 @@ DEFAULT_V2_CONFIG = REPO_ROOT / "sologpt_v2" / "config_modern_small.json"
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run compact external base-LM benchmarks")
-    parser.add_argument("--models", nargs="+", default=["v2", "gpt2"], choices=["v2", "gpt2"])
+    parser.add_argument(
+        "--models",
+        nargs="+",
+        default=["v2", "gpt2"],
+        help="Model specs: v2, gpt2, distilgpt2, hf:org/model, or label=hf:org/model",
+    )
     parser.add_argument("--benchmarks", nargs="+", default=["wikitext2", "lambada"], choices=["wikitext2", "lambada"])
     parser.add_argument("--v2-checkpoint", default=str(DEFAULT_V2_CHECKPOINT))
     parser.add_argument("--v2-config", default=str(DEFAULT_V2_CONFIG))
     parser.add_argument("--v2-label", default="v2", help="Display label for the v2-loaded model")
     parser.add_argument("--device", choices=["cpu", "cuda", "mps"], default=None)
     parser.add_argument("--context-length", type=int, default=512, help="Shared context window for all models")
-    parser.add_argument("--max-wikitext-tokens", type=int, default=250_000)
+    parser.add_argument("--max-wikitext-tokens", type=int, default=0, help="0 means all available WikiText-2 tokens")
     parser.add_argument("--max-lambada-examples", type=int, default=1_000)
+    parser.add_argument("--trust-remote-code", action="store_true", help="Allow HF custom model code")
     parser.add_argument("--output-json", required=True)
     parser.add_argument("--output-md", default=None)
     parser.add_argument("--no-progress", action="store_true")
     return parser.parse_args(argv)
-
-
-def display_name(model_name: str, *, v2_label: str) -> str:
-    return v2_label if model_name == "v2" else model_name
-
-
-def load_model(
-    model_name: str,
-    *,
-    device: torch.device,
-    v2_checkpoint: Path,
-    v2_config: Path,
-) -> tuple[torch.nn.Module, dict[str, Any]]:
-    if model_name == "gpt2":
-        model = GPT2LMHeadModel.from_pretrained("gpt2").to(device)
-        return model, {
-            "model": "gpt2",
-            "parameter_count": sum(parameter.numel() for parameter in model.parameters()),
-            "native_context_length": int(model.config.n_positions),
-        }
-
-    config = load_json(v2_config)
-    model = SoloGPT_v2(config).to(device)
-    state = load_checkpoint_state(v2_checkpoint, device)
-    model.load_state_dict(state)
-    return model, {
-        "model": "v2",
-        "checkpoint": str(v2_checkpoint),
-        "config": str(v2_config),
-        "parameter_count": sum(parameter.numel() for parameter in model.parameters()),
-        "native_context_length": int(config.get("max_seq_len", config.get("seq_length", 512))),
-    }
 
 
 def load_wikitext2_texts() -> list[str]:
@@ -105,21 +76,25 @@ def load_lambada_texts() -> list[str]:
     raise RuntimeError("could not load a LAMBADA dataset: " + " | ".join(errors))
 
 
-def tokenize_corpus(tokenizer: GPT2Tokenizer, texts: list[str], max_tokens: int | None) -> list[int]:
+def utf8_len(text: str) -> int:
+    return len(text.encode("utf-8"))
+
+
+def tokenize_corpus(tokenizer: Any, texts: list[str], max_tokens: int | None) -> tuple[list[int], int, bool]:
     eos_ids = [tokenizer.eos_token_id] if tokenizer.eos_token_id is not None else []
     token_ids: list[int] = []
+    byte_count = 0
+    byte_count_is_exact = True
     for text in texts:
         if eos_ids and token_ids:
             token_ids.extend(eos_ids)
-        token_ids.extend(tokenizer(text, add_special_tokens=False).input_ids)
+        text_ids = tokenizer(text, add_special_tokens=False).input_ids
+        token_ids.extend(text_ids)
+        byte_count += utf8_len(text)
         if max_tokens is not None and max_tokens > 0 and len(token_ids) >= max_tokens:
-            return token_ids[:max_tokens]
-    return token_ids
-
-
-def model_logits(model: torch.nn.Module, input_ids: torch.Tensor) -> torch.Tensor:
-    outputs = model(input_ids)
-    return outputs.logits if hasattr(outputs, "logits") else outputs
+            byte_count_is_exact = len(token_ids) == max_tokens
+            return token_ids[:max_tokens], byte_count, byte_count_is_exact
+    return token_ids, byte_count, byte_count_is_exact
 
 
 @torch.no_grad()
@@ -131,6 +106,8 @@ def score_token_ids(
     context_length: int,
     disable_progress: bool,
     desc: str,
+    byte_count: int | None = None,
+    byte_count_is_exact: bool | None = None,
 ) -> dict[str, Any]:
     criterion = torch.nn.CrossEntropyLoss(reduction="sum")
     total_loss = 0.0
@@ -152,18 +129,28 @@ def score_token_ids(
         total_tokens += int(targets.numel())
 
     mean_loss = total_loss / total_tokens if total_tokens else float("inf")
-    return {
+    result = {
         "loss": mean_loss,
         "perplexity": math.exp(mean_loss) if math.isfinite(mean_loss) else float("inf"),
         "tokens": total_tokens,
         "chunks": len(chunks),
     }
+    if byte_count:
+        result.update(
+            {
+                "bytes": byte_count,
+                "bits_per_byte": total_loss / math.log(2) / byte_count,
+                "nats_per_byte": total_loss / byte_count,
+                "byte_count_is_exact": byte_count_is_exact,
+            }
+        )
+    return result
 
 
 @torch.no_grad()
 def score_lambada_last_token(
     model: torch.nn.Module,
-    tokenizer: GPT2Tokenizer,
+    tokenizer: Any,
     texts: list[str],
     *,
     device: torch.device,
@@ -217,7 +204,7 @@ def split_final_word(text: str) -> tuple[str, str] | None:
 @torch.no_grad()
 def score_lambada_last_word(
     model: torch.nn.Module,
-    tokenizer: GPT2Tokenizer,
+    tokenizer: Any,
     texts: list[str],
     *,
     device: torch.device,
@@ -261,7 +248,7 @@ def score_lambada_last_word(
 
 def run_wikitext2(
     model: torch.nn.Module,
-    tokenizer: GPT2Tokenizer,
+    tokenizer: Any,
     *,
     texts: list[str],
     device: torch.device,
@@ -270,7 +257,7 @@ def run_wikitext2(
     disable_progress: bool,
     model_name: str,
 ) -> dict[str, Any]:
-    token_ids = tokenize_corpus(tokenizer, texts, max_tokens)
+    token_ids, byte_count, byte_count_is_exact = tokenize_corpus(tokenizer, texts, max_tokens)
     result = score_token_ids(
         model,
         token_ids,
@@ -278,6 +265,8 @@ def run_wikitext2(
         context_length=context_length,
         disable_progress=disable_progress,
         desc=f"{model_name} wikitext2",
+        byte_count=byte_count,
+        byte_count_is_exact=byte_count_is_exact,
     )
     result.update(
         {
@@ -292,7 +281,7 @@ def run_wikitext2(
 
 def run_lambada(
     model: torch.nn.Module,
-    tokenizer: GPT2Tokenizer,
+    tokenizer: Any,
     *,
     texts: list[str],
     device: torch.device,
@@ -300,7 +289,7 @@ def run_lambada(
     disable_progress: bool,
     model_name: str,
 ) -> dict[str, Any]:
-    token_ids = tokenize_corpus(tokenizer, texts, None)
+    token_ids, byte_count, byte_count_is_exact = tokenize_corpus(tokenizer, texts, None)
     ppl_result = score_token_ids(
         model,
         token_ids,
@@ -308,6 +297,8 @@ def run_lambada(
         context_length=context_length,
         disable_progress=disable_progress,
         desc=f"{model_name} lambada-ppl",
+        byte_count=byte_count,
+        byte_count_is_exact=byte_count_is_exact,
     )
     last_token = score_lambada_last_token(
         model,
@@ -358,15 +349,17 @@ def write_markdown(path: Path, result: dict[str, Any]) -> None:
     lines = [
         "# External Base-LM Benchmark Results",
         "",
-        "Compact external comparison using the GPT-2 tokenizer and a shared context window.",
+        "Compact external comparison using each model's native tokenizer and a shared context window.",
+        "",
+        "Raw token perplexity is tokenizer-local. Use bits-per-byte and downstream accuracies for cross-tokenizer comparisons.",
         "",
         f"- Context length: `{result['settings']['context_length']}`",
         f"- Device: `{result['settings']['device']}`",
         f"- WikiText token cap: `{format_cap(result['settings']['max_wikitext_tokens'])}`",
         f"- LAMBADA example cap: `{format_cap(result['settings']['max_lambada_examples'])}`",
         "",
-        "| Benchmark | Model | Tokens | PPL | Loss | Last-token acc | Last-word exact |",
-        "|---|---|---:|---:|---:|---:|---:|",
+        "| Benchmark | Model | Tokens | Bytes | BPB | PPL | Loss | Last-token acc | Last-word exact |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for row in result["results"]:
         lines.append(
@@ -376,6 +369,8 @@ def write_markdown(path: Path, result: dict[str, Any]) -> None:
                     row["benchmark"],
                     row["model"],
                     format_value(row.get("tokens"), 0),
+                    format_value(row.get("bytes"), 0),
+                    format_value(row.get("bits_per_byte")),
                     format_value(row.get("perplexity")),
                     format_value(row.get("loss")),
                     format_value(row.get("last_token_accuracy")),
@@ -398,8 +393,6 @@ def write_markdown(path: Path, result: dict[str, Any]) -> None:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     device = resolve_device(args.device)
-    tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-    tokenizer.pad_token = tokenizer.eos_token
 
     wikitext_texts: list[str] | None = None
     lambada_texts: list[str] | None = None
@@ -413,21 +406,26 @@ def main(argv: list[str] | None = None) -> int:
     started = time.time()
     models: dict[str, dict[str, Any]] = {}
     results: list[dict[str, Any]] = []
-    for model_name in args.models:
-        label = display_name(model_name, v2_label=args.v2_label)
-        model, metadata = load_model(
-            model_name,
+    for model_spec in args.models:
+        loaded_model = load_eval_model(
+            model_spec,
             device=device,
             v2_checkpoint=resolve_path(args.v2_checkpoint, Path.cwd()),
             v2_config=resolve_path(args.v2_config, Path.cwd()),
+            v2_label=args.v2_label,
+            trust_remote_code=args.trust_remote_code,
         )
+        label = loaded_model.label
+        model = loaded_model.model
+        tokenizer = loaded_model.tokenizer
+        metadata = loaded_model.metadata
         models[label] = metadata
 
         if wikitext_texts is not None:
             results.append(
                 {
                     "model": label,
-                    "model_loader": model_name,
+                    "model_loader": loaded_model.loader,
                     **run_wikitext2(
                         model,
                         tokenizer,
@@ -444,7 +442,7 @@ def main(argv: list[str] | None = None) -> int:
             results.append(
                 {
                     "model": label,
-                    "model_loader": model_name,
+                    "model_loader": loaded_model.loader,
                     **run_lambada(
                         model,
                         tokenizer,
@@ -467,6 +465,7 @@ def main(argv: list[str] | None = None) -> int:
             "context_length": args.context_length,
             "max_wikitext_tokens": args.max_wikitext_tokens,
             "max_lambada_examples": args.max_lambada_examples,
+            "tokenizer_policy": "native_per_model",
         },
         "models": models,
         "results": results,

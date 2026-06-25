@@ -8,6 +8,7 @@ from pathlib import Path
 import torch
 
 from sologpt_v2.model import SoloGPT_v2
+from eval.model_registry import parse_model_spec
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -69,3 +70,18 @@ def test_eval_cli_writes_finite_v2_result(tmp_path):
     assert result["tokens"] > 0
     assert math.isfinite(result["loss"])
     assert math.isfinite(result["perplexity"])
+
+
+def test_model_spec_parser_supports_hf_labels():
+    assert parse_model_spec("v2", v2_label="candidate") == ("candidate", "v2", None)
+    assert parse_model_spec("gpt2", v2_label="candidate") == ("gpt2", "gpt2", "gpt2")
+    assert parse_model_spec("hf:EleutherAI/pythia-160m", v2_label="candidate") == (
+        "pythia-160m",
+        "hf",
+        "EleutherAI/pythia-160m",
+    )
+    assert parse_model_spec("smollm2=hf:HuggingFaceTB/SmolLM2-135M", v2_label="candidate") == (
+        "smollm2",
+        "hf",
+        "HuggingFaceTB/SmolLM2-135M",
+    )
