@@ -129,7 +129,8 @@ if gen:
 if not parts:
     parts.append(f"exit status {status}")
 
-title = "SoloLLM v3 full eval complete" if status == 0 else "SoloLLM v3 full eval failed"
+title_prefix = "SoloLLM v4" if label.startswith("v4") else "SoloLLM v3"
+title = f"{title_prefix} full eval complete" if status == 0 else f"{title_prefix} full eval failed"
 body = "; ".join(parts) + f"; log: {log_path}"
 payload = {
     "title": title,
