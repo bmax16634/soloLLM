@@ -1,0 +1,68 @@
+version: 1
+description: "SoloLLM v4 full run: SmolLM-inspired education, synthetic, and math mix"
+tokenizer: gpt2
+seq_length: 1024
+target_tokens: 10000000000
+shard_tokens: 8388608
+split:
+  train: 0.98
+  val: 0.01
+  test: 0.01
+filters:
+  min_chars: 200
+  max_chars: 200000
+  min_alpha_ratio: 0.45
+  max_repeated_line_fraction: 0.35
+  min_language_score: 0.65
+streaming:
+  shuffle_buffer: 0
+  seed: 2029
+sources:
+  - id: smollm_fineweb_edu_dedup
+    enabled: true
+    weight: 0.35
+    dataset: HuggingFaceTB/smollm-corpus
+    config: fineweb-edu-dedup
+    split: train
+    text_field: text
+    notes: "Deduplicated educational web text from SmolLM-Corpus."
+  - id: cosmopedia_v2
+    enabled: true
+    weight: 0.25
+    dataset: HuggingFaceTB/smollm-corpus
+    config: cosmopedia-v2
+    split: train
+    text_field: text
+    notes: "Synthetic textbook/blog/story content used by the SmolLM data family."
+  - id: finemath_4plus
+    enabled: true
+    weight: 0.15
+    dataset: HuggingFaceTB/finemath
+    config: finemath-4plus
+    split: train
+    text_field: text
+    notes: "High-quality math reasoning subset from FineMath."
+  - id: dclm_baseline
+    enabled: true
+    weight: 0.15
+    dataset: mlfoundations/dclm-baseline-1.0-parquet
+    config: null
+    split: train
+    text_field: text
+    notes: "Curated web diversity and quality signal."
+  - id: wikipedia_en_20231101
+    enabled: true
+    weight: 0.05
+    dataset: wikimedia/wikipedia
+    config: 20231101.en
+    split: train
+    text_field: text
+    notes: "Reference/encyclopedic prose."
+  - id: openwebtext
+    enabled: true
+    weight: 0.05
+    dataset: Skylion007/openwebtext
+    config: plain_text
+    split: train
+    text_field: text
+    notes: "Small amount of legacy project distribution."
