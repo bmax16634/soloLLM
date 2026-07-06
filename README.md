@@ -2,7 +2,7 @@
 
 SoloLLM is a from-scratch GPT-style language model project built in PyTorch. It includes the core pieces needed to train, evaluate, fine-tune, and serve a small decoder-only language model on consumer hardware.
 
-The project is organized as a portfolio case study: `sologpt_v1` is the published baseline, `sologpt_v2` is the infrastructure/architecture rebuild, and `sologpt_v3` is the final GPT-2 comparison with a curated 10B-token dataset.
+The project is organized as a portfolio case study: `sologpt_v1` is the published baseline, `sologpt_v2` is the infrastructure/architecture rebuild, `sologpt_v3` is the final GPT-2 comparison with a curated 10B-token dataset, and `v4-research` records post-v3 ablations against modern small-LM gaps.
 
 ## Highlights
 
@@ -14,6 +14,7 @@ The project is organized as a portfolio case study: `sologpt_v1` is the publishe
 - v2 implementation with RoPE attention, tied embeddings, checkpoint metadata, JSONL metrics, validation hooks, gradient clipping, resume support, and CPU smoke tests.
 - v3 10B-token data mixture with FineWeb-Edu, DCLM, FineWeb, Wikipedia, and OpenWebText.
 - Final v3 full eval suite against GPT-2 small across held-out perplexity, WikiText-2, LAMBADA, multiple-choice scoring, and fixed-prompt generation metrics.
+- v4 research branch testing architecture and data-mix hypotheses; the first full v4 run improved multiple-choice/repetition metrics but did not replace v3 as the best general model.
 
 ## Repository Layout
 
@@ -55,6 +56,7 @@ Generated datasets, checkpoints, training logs, and model weights are intentiona
 | `v2-modern-small` | Final + stretch runs complete | 91,654,400-param modern-small config with RMSNorm, SwiGLU, RoPE, tied embeddings, 5.60B-checkpoint full held-out PPL 25.56, and clear improvement over v1. |
 | `v3-gpt2-scale-1024` | Final 10B run complete | 123,551,232-param 1024-context model, slightly smaller than GPT-2 small; beats GPT-2 on most external checks but not project held-out PPL. |
 | `v3-plus-150m-1024` | Final best v3 model | 151,868,928-param 1024-context model trained on the curated 10B dataset; beats GPT-2 small overall on the fixed v3 suite. |
+| `v4-smollm-reasoning-150m` | Research ablation complete | Same 151,868,928-param architecture trained on a SmolLM-inspired reasoning-heavy 10B mix; improves MC/repetition diagnostics but hurts broad PPL versus v3. |
 
 Published Hugging Face artifacts:
 
@@ -161,6 +163,15 @@ Final v3 closeout results:
 | `v3-plus-150m-1024` | 151.87M | 10.00B | 24.90 | 41.18 | 35.35 | 42.71% | Final best model; beats GPT-2 overall |
 
 The final project claim is deliberately narrow: SoloLLM v3 trains GPT-2-class base LMs from scratch on one RTX 3090, and the 150M v3 model beats GPT-2 small overall on the fixed suite. The 123M model is slightly smaller than GPT-2 and wins many external benchmarks, but it does not beat GPT-2 across every metric. See [docs/results/v3_final_gpt2_comparison.md](docs/results/v3_final_gpt2_comparison.md).
+
+Post-v3 v4 research result:
+
+| Model | Params | Train tokens | Held-out PPL | WikiText-2 PPL | LAMBADA PPL | MC avg acc norm | Read |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `v3-plus-150m-1024` | 151.87M | 10.00B | 24.90 | 41.18 | 35.35 | 42.71% | Best general SoloLLM model |
+| `v4-smollm-reasoning-150m` | 151.87M | 9.80B | 27.38 | 43.59 | 38.46 | 43.52% | Better MC/repetition, worse general PPL |
+
+The v4 result is an ablation, not a new final model. It shows that a reasoning-heavy data mix can improve multiple-choice scoring and reduce repetition while harming general base-LM perplexity. See [docs/results/v4_smollm_reasoning_150m_10b.md](docs/results/v4_smollm_reasoning_150m_10b.md).
 
 Final Phase 4 held-out perplexity on reserved shards `58:60`:
 

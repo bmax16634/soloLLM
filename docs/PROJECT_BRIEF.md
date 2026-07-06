@@ -155,6 +155,40 @@ Published artifacts:
 | v3 123M smaller-model ablation | <https://huggingface.co/bmax16634/sologpt-v3-123m-base> |
 | Public v3 completion demo | <https://huggingface.co/spaces/bmax16634/sologpt-v3-150m-demo> |
 
+## Post-V3 Research: V4
+
+After v3 closeout, the project branch `v4-research` tested whether the remaining
+gap to modern small LMs was primarily architecture shape or data mix.
+
+The architecture proxy did not support switching to a deeper/narrower
+SmolLM2-style shape by itself. A later 57M data proxy showed a large validation
+gain for a SmolLM-inspired reasoning-heavy mix, so that mix was scaled to a full
+151.9M-parameter 10B-token run.
+
+The full v4 result was mixed:
+
+| Benchmark | GPT-2 small | v3 150M | v4 150M |
+| --- | ---: | ---: | ---: |
+| Project held-out PPL | 25.32 | 24.90 | 27.38 |
+| WikiText-2 PPL | 45.32 | 41.18 | 43.59 |
+| LAMBADA PPL | 40.62 | 35.35 | 38.46 |
+| LAMBADA last-word accuracy | 32.60% | 33.07% | 32.91% |
+| Multiple-choice avg acc norm | 41.05% | 42.71% | 43.52% |
+| Repeated bigram fraction | 17.15% | 17.23% | 8.55% |
+
+V4 improved multiple-choice scoring and fixed-prompt repetition metrics, but it
+hurt broad general-LM perplexity versus v3. The current best general SoloLLM
+model remains v3 150M.
+
+The v4 research finding is:
+
+> A reasoning-heavy educational/synthetic/math mix can improve benchmark-style
+> continuation scoring and reduce repetition, but it can trade away broad
+> language-modeling quality. The next experiment should be a blended v4.1 data
+> mix, not longer training of the completed v4 checkpoint.
+
+Full report: `docs/results/v4_smollm_reasoning_150m_10b.md`.
+
 ## Current Verification
 
 Run:

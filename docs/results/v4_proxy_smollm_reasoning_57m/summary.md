@@ -21,4 +21,13 @@ The proxy confirms that the SmolLM-style data mix is promising, but it does not 
 
 ## Next Decision
 
-Build a full 10B-token v4 dataset using the `smollm_reasoning` mix and train a fresh 150M model. Keep the architecture close to v3 because the architecture proxy did not justify a redesign.
+This proxy was scaled into the full `v4_smollm_reasoning_10b_150m` run.
+
+The full run did not replace v3 as the best general SoloLLM model. It improved
+multiple-choice scoring and repetition diagnostics, but it hurt project
+held-out, WikiText-2, and LAMBADA perplexity versus v3 150M.
+
+The follow-up should be `v4.1`: a blended data mix that keeps some
+reasoning/educational/math data while restoring more v3-style broad
+web/reference data. Full report:
+`docs/results/v4_smollm_reasoning_150m_10b.md`.

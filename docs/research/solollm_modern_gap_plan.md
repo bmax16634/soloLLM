@@ -214,3 +214,68 @@ Decision:
 - Do not switch the final architecture solely to the deeper/narrower GQA proxy.
 - Treat SmolLM2's advantage as more likely coming from data quality/mix, tokenizer/context, recipe, or the interaction of those factors with architecture.
 - Move the next controlled experiment toward data quality/mix while keeping the v3-style shape as the stronger local baseline.
+
+## Phase 2 Data Proxy Result
+
+The next controlled data proxy compared candidate data mixes using the v3-style
+57M proxy. The strongest proxy result was `smollm_reasoning`, a SmolLM-inspired
+mix with educational web, synthetic textbook-style data, and math reasoning.
+
+| Proxy data mix | Params | Tokens | Best val loss | Best val PPL | Read |
+|---|---:|---:|---:|---:|---|
+| v3 pilot mix | 57.12M | 300M | 4.1530 | 63.63 | baseline |
+| quality_web | 57.12M | 300M | 4.1926 | 66.20 | worse |
+| smollm_reasoning | 57.12M | 300M | 3.8521 | 47.09 | strong proxy win |
+
+Decision at the proxy stage:
+
+- Scale `smollm_reasoning` to a full 150M 10B-token run.
+- Keep the v3-style architecture because the architecture proxy did not justify
+  switching shape.
+
+## Phase 3 Full V4 Result
+
+The full v4 run trained the same 151.9M-parameter v3-style architecture on the
+`smollm_reasoning` 10B-token dataset. It completed successfully, but it did not
+replace v3 as the best general SoloLLM model.
+
+| Benchmark | GPT-2 small | v3 150M | v4 150M smollm_reasoning |
+|---|---:|---:|---:|
+| Project held-out PPL | 25.32 | 24.90 | 27.38 |
+| WikiText-2 PPL | 45.32 | 41.18 | 43.59 |
+| LAMBADA PPL | 40.62 | 35.35 | 38.46 |
+| LAMBADA word acc | 32.60% | 33.07% | 32.91% |
+| MC avg acc norm | 41.05% | 42.71% | 43.52% |
+| Repeated bigram fraction | 17.15% | 17.23% | 8.55% |
+
+Conclusion:
+
+- V3 remains the best general SoloLLM base model.
+- V4 improved multiple-choice scoring and generation repetition diagnostics.
+- V4 hurt broad base-LM perplexity relative to v3.
+- The data proxy overestimated full-run generalization because its validation
+  distribution was too close to the v4 training distribution.
+
+Full report: `docs/results/v4_smollm_reasoning_150m_10b.md`.
+
+## V4.1 Direction
+
+If this research line continues, call the next experiment `v4.1`. Do not treat
+the completed v4 checkpoint as the new main model and do not simply continue it
+longer.
+
+The v4.1 hypothesis should be:
+
+> A blended data mix can preserve v4's multiple-choice/repetition gains while
+> recovering v3's general-language perplexity.
+
+Recommended blend:
+
+| Component | Share | Purpose |
+|---|---:|---|
+| v3-style broad web/reference data | 60-75% | recover general PPL |
+| SmolLM reasoning/educational/math data | 15-25% | keep MC and repetition gains |
+| Wikipedia/reference/code-light high-signal data | 5-10% | improve structured/factual coverage |
+
+Run this as a cheap proxy first. Scale only if the proxy improves both
+validation PPL and modern-suite scores versus the v3 and v4 proxy baselines.
