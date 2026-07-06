@@ -168,3 +168,26 @@ The modern eval confirmed the tradeoff:
 This is better broad-LM transfer, but worse MC transfer. The exact v4.1 blend
 should not be scaled directly; use it to design a second blend with slightly
 more reasoning/math signal.
+
+## V4.1b Follow-Up
+
+The next proxy should test the midpoint between the reasoning-heavy run and the
+v4.1 broad blend.
+
+Manifest: `sologpt_v4/data_mix_v4_1b_blend_300m.yaml`
+
+Launcher: `scripts/run_v4_1b_blend_proxy_eval_notify.sh`
+
+| Source group | Weight | Purpose |
+|---|---:|---|
+| v3-style broad web | 60% | keep the v4.1 WikiText/LAMBADA recovery |
+| SmolLM/Cosmopedia/FineMath reasoning | 34% | restore some MC strength |
+| Wikipedia/reference | 6% | preserve reference prose |
+
+Decision rule:
+
+- Scale only if v4.1b improves MC versus v4.1 without giving back most of the
+  WikiText/LAMBADA improvement.
+- If v4.1b still fails the tradeoff, stop data-mix proxy search and move to a
+  separate architecture/tokenizer experiment instead of running another 150M
+  10B train.
