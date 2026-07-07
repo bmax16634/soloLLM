@@ -1,0 +1,55 @@
+# V4 Architecture And Training-Recipe Proxy Plan
+
+The data-mix proxy loop exposed a real broad-LM versus MC/reasoning tradeoff,
+but no blended data-only proxy earned a full 150M/10B scale-up. The next
+controlled variable is the architecture/training recipe.
+
+## Current Architecture
+
+The current SoloLLM v3/v4 model is already a modern GPT-style decoder:
+
+- RoPE positional encoding
+- RMSNorm
+- SwiGLU MLP
+- tied input/output embeddings
+- bias-free linear projections
+- causal scaled-dot-product attention
+- GPT-2 tokenizer
+- 1024-token context
+
+Full 150M shape:
+
+- `n_layer=16`
+- `n_embd=768`
+- `n_head=12`
+- `dropout=0.1`
+- no grouped-query attention in the full 150M config
+
+57M proxy shape:
+
+- `n_layer=10`
+- `n_embd=512`
+- `n_head=8`
+- `dropout=0.1`
+
+## Completed Architecture Signal
+
+The deeper/narrower SmolLM2-style 57M proxy did not justify replacing the
+wider v3-style proxy shape by itself.
+
+## V4.2 Proxy
+
+First training-recipe test:
+
+- Data: `v4_1b_blend_300m_1024`
+- Model: same 57M v3-style proxy
+- Change: `dropout=0.1` to `dropout=0.0`
+- Config: `sologpt_v4/config_proxy_v4_2_dropout0_57m_1024.json`
+- Launcher: `scripts/run_v4_2_dropout0_proxy_eval_notify.sh`
+
+Decision rule:
+
+- Scale only if dropout `0.0` improves proxy validation and does not worsen the
+  modern broad-LM/MC tradeoff.
+- If dropout `0.0` overfits or weakens external metrics, try `dropout=0.05`
+  before changing the transformer block shape again.
