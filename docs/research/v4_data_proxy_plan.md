@@ -191,3 +191,16 @@ Decision rule:
 - If v4.1b still fails the tradeoff, stop data-mix proxy search and move to a
   separate architecture/tokenizer experiment instead of running another 150M
   10B train.
+
+Completed result:
+
+| Proxy | Proxy val PPL | WikiText PPL | LAMBADA PPL | LAMBADA tok acc | MC avg norm |
+|---|---:|---:|---:|---:|---:|
+| smollm_reasoning | 47.09 | 155.71 | 72.56 | 0.2271 | 0.3686 |
+| v4.1 blend | 58.45 | 144.80 | 66.93 | 0.2408 | 0.3601 |
+| v4.1b blend | 54.46 | 149.37 | 68.55 | 0.2381 | 0.3613 |
+
+Decision: do not scale v4.1b directly. It improves proxy validation versus
+v4.1, but its modern eval lands between `smollm_reasoning` and `v4.1` rather
+than dominating either. The next experiment should change a new variable
+instead of continuing data-only interpolation.
