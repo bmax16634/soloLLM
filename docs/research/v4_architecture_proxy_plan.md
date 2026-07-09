@@ -94,3 +94,15 @@ Decision: scale this recipe. Dropout `0.0` on the broader v4.1 blend data is
 the first proxy to improve both broad external metrics and MC. The next step is
 to build the same mix at 10B tokens and train a fresh 150M model with dropout
 `0.0`.
+
+## Lockbox Verification
+
+Before building the full 10B-token dataset, run a separate sanity check that was
+not used for the proxy search decision:
+
+- project held-out shards `58:60`,
+- fixed sample cap of `512` batches per shard,
+- fixed prompt generations,
+- generation repetition/diversity metrics.
+
+Launcher: `scripts/run_v4_2_dropout0_v4_1_blend_lockbox_notify.sh`
