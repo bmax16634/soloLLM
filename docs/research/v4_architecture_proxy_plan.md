@@ -68,3 +68,17 @@ the previous data-only interpolation.
 Next proxy: run the same dropout `0.0` recipe on the broader v4.1 blend data.
 If it keeps v4.1's better WikiText while improving MC, that becomes the first
 credible full-scale candidate.
+
+## V4.2 On V4.1 Blend Follow-Up
+
+This follow-up tests whether the dropout-0 gain transfers to the broader data
+mix that had the best WikiText/LAMBADA proxy behavior.
+
+- Data: `v4_1_blend_300m_1024`
+- Model: same 57M v3-style proxy
+- Change versus v4.1: `dropout=0.1` to `dropout=0.0`
+- Config: `sologpt_v4/config_proxy_v4_2_dropout0_v4_1_blend_57m_1024.json`
+- Launcher: `scripts/run_v4_2_dropout0_v4_1_blend_proxy_eval_notify.sh`
+
+Decision rule: scale only if it keeps v4.1's broad external advantage while
+materially improving validation and/or MC.
