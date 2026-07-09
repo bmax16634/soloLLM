@@ -117,3 +117,16 @@ Result:
 Read: the proxy is not itself competitive with GPT-2. The useful signal is that
 it is the best scale candidate from the controlled proxy search, not that the
 57M proxy is a final-quality model.
+
+## Full-Scale V4.2 Dataset
+
+The full run should use a fresh 10B-token dataset with the same v4.1 blend that
+won the dropout proxy test.
+
+- Manifest: `sologpt_v4/data_mix_v4_2_dropout0_v4_1_blend_10b.yaml`
+- Build launcher: `scripts/build_v4_2_dropout0_v4_1_blend_10b_dataset_notify.sh`
+- Output dataset: `data/v4_2_dropout0_v4_1_blend_10b_1024`
+
+This dataset is for a fresh 150M dropout-0 run. Do not continue from the 57M
+proxy checkpoint and do not train the 150M model by looping the 300M proxy
+dataset.
