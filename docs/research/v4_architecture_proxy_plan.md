@@ -53,3 +53,18 @@ Decision rule:
   modern broad-LM/MC tradeoff.
 - If dropout `0.0` overfits or weakens external metrics, try `dropout=0.05`
   before changing the transformer block shape again.
+
+## V4.2 Result
+
+| Proxy | Val PPL | WikiText PPL | LAMBADA PPL | LAMBADA tok acc | MC avg norm |
+|---|---:|---:|---:|---:|---:|
+| v4.1b dropout0.1 | 54.46 | 149.37 | 68.55 | 0.2381 | 0.3613 |
+| v4.2 dropout0.0 | 51.28 | 149.84 | 65.44 | 0.2366 | 0.3678 |
+
+Read: dropout `0.0` improves validation, LAMBADA PPL, and MC average, while
+leaving WikiText roughly flat/slightly worse. This is a stronger signal than
+the previous data-only interpolation.
+
+Next proxy: run the same dropout `0.0` recipe on the broader v4.1 blend data.
+If it keeps v4.1's better WikiText while improving MC, that becomes the first
+credible full-scale candidate.
