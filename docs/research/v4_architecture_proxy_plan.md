@@ -82,3 +82,15 @@ mix that had the best WikiText/LAMBADA proxy behavior.
 
 Decision rule: scale only if it keeps v4.1's broad external advantage while
 materially improving validation and/or MC.
+
+## V4.2 On V4.1 Blend Result
+
+| Proxy | Val PPL | WikiText PPL | LAMBADA PPL | LAMBADA tok acc | MC avg norm |
+|---|---:|---:|---:|---:|---:|
+| v4.1 blend dropout0.1 | 58.45 | 144.80 | 66.93 | 0.2408 | 0.3601 |
+| v4.1 blend dropout0.0 | 54.98 | 141.55 | 64.54 | 0.2420 | 0.3705 |
+
+Decision: scale this recipe. Dropout `0.0` on the broader v4.1 blend data is
+the first proxy to improve both broad external metrics and MC. The next step is
+to build the same mix at 10B tokens and train a fresh 150M model with dropout
+`0.0`.
