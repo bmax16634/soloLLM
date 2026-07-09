@@ -106,3 +106,14 @@ not used for the proxy search decision:
 - generation repetition/diversity metrics.
 
 Launcher: `scripts/run_v4_2_dropout0_v4_1_blend_lockbox_notify.sh`
+
+Result:
+
+| Model | Held-out PPL | Repeated bigrams | Bad loops |
+|---|---:|---:|---:|
+| v4.2 dropout0 v4.1 blend proxy 57M | 67.57 | 0.2567 | 3 |
+| GPT-2 small | 25.56 | 0.1715 | 2 |
+
+Read: the proxy is not itself competitive with GPT-2. The useful signal is that
+it is the best scale candidate from the controlled proxy search, not that the
+57M proxy is a final-quality model.
