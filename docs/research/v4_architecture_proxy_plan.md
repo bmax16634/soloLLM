@@ -120,13 +120,64 @@ it is the best scale candidate from the controlled proxy search, not that the
 
 ## Full-Scale V4.2 Dataset
 
-The full run should use a fresh 10B-token dataset with the same v4.1 blend that
-won the dropout proxy test.
+The full run used a fresh 10B-token dataset with the same v4.1 blend that won
+the dropout proxy test.
 
 - Manifest: `sologpt_v4/data_mix_v4_2_dropout0_v4_1_blend_10b.yaml`
 - Build launcher: `scripts/build_v4_2_dropout0_v4_1_blend_10b_dataset_notify.sh`
 - Output dataset: `data/v4_2_dropout0_v4_1_blend_10b_1024`
 
-This dataset is for a fresh 150M dropout-0 run. Do not continue from the 57M
+This dataset was for a fresh 150M dropout-0 run. Do not continue from the 57M
 proxy checkpoint and do not train the 150M model by looping the 300M proxy
 dataset.
+
+Split metadata:
+
+| Split | Shards | Tokens |
+|---|---:|---:|
+| Train | 1169 | 9,800,571,904 |
+| Validation | 12 | 99,416,064 |
+| Test | 12 | 100,012,032 |
+
+## Full-Scale V4.2 Result
+
+The 150M run completed after recovering from a power outage at the 8B checkpoint.
+The resume path continued on unseen training shards and finished at
+`9,800,572,928` total tokens.
+
+| Item | Value |
+|---|---:|
+| Parameters | 151,868,928 |
+| Dropout | 0.0 |
+| Final train loss | 3.0599 |
+| Best internal validation PPL | 19.11 |
+| Full held-out PPL | 24.3035 |
+| Full held-out loss | 3.1906 |
+
+External and multiple-choice comparison:
+
+| Benchmark | GPT-2 small | v3 150M | v4 reasoning 150M | v4.2 blend 150M |
+|---|---:|---:|---:|---:|
+| Project held-out PPL | 25.32 | 24.90 | 27.38 | 24.30 |
+| WikiText-2 PPL | 45.32 | 41.18 | 43.59 | 41.75 |
+| LAMBADA PPL | 40.62 | 35.35 | 38.46 | 34.06 |
+| LAMBADA last-token acc | 46.67% | 47.40% | 47.09% | 47.27% |
+| LAMBADA last-word exact | 32.60% | 33.07% | 32.91% | 33.05% |
+| MC avg acc norm | 41.05% | 42.71% | 43.52% | 43.61% |
+
+Multiple-choice normalized detail:
+
+| Benchmark | GPT-2 small | v4.2 blend 150M |
+|---|---:|---:|
+| HellaSwag | 29.53% | 32.99% |
+| PIQA | 63.60% | 65.50% |
+| ARC-Easy | 40.35% | 45.09% |
+| ARC-Challenge | 22.07% | 23.08% |
+| WinoGrande | 49.72% | 51.38% |
+
+Decision: full-scale v4.2 passed the scale test. It is now the best
+quantitative SoloLLM checkpoint and the first v4 run to beat GPT-2 small across
+the fixed quantitative suite. The caveat is that it remains a larger model than
+GPT-2 small, so the smaller-than-GPT-2 hypothesis is still open.
+
+Full report: `docs/results/v4_2_dropout0_v4_1_blend_150m_10b.md`.

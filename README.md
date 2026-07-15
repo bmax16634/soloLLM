@@ -2,7 +2,7 @@
 
 SoloLLM is a from-scratch GPT-style language model project built in PyTorch. It includes the core pieces needed to train, evaluate, fine-tune, and serve a small decoder-only language model on consumer hardware.
 
-The project is organized as a portfolio case study: `sologpt_v1` is the published baseline, `sologpt_v2` is the infrastructure/architecture rebuild, `sologpt_v3` is the final GPT-2 comparison with a curated 10B-token dataset, and `v4-research` records post-v3 ablations against modern small-LM gaps.
+The project is organized as a portfolio case study: `sologpt_v1` is the published baseline, `sologpt_v2` is the infrastructure/architecture rebuild, `sologpt_v3` is the public GPT-2 comparison with a curated 10B-token dataset, and `v4-research` records post-v3 ablations against modern small-LM gaps.
 
 ## Highlights
 
@@ -14,7 +14,7 @@ The project is organized as a portfolio case study: `sologpt_v1` is the publishe
 - v2 implementation with RoPE attention, tied embeddings, checkpoint metadata, JSONL metrics, validation hooks, gradient clipping, resume support, and CPU smoke tests.
 - v3 10B-token data mixture with FineWeb-Edu, DCLM, FineWeb, Wikipedia, and OpenWebText.
 - Final v3 full eval suite against GPT-2 small across held-out perplexity, WikiText-2, LAMBADA, multiple-choice scoring, and fixed-prompt generation metrics.
-- v4 research branch testing architecture and data-mix hypotheses; the first full v4 run improved multiple-choice/repetition metrics but did not replace v3 as the best general model.
+- v4 research branch testing architecture, data-mix, and training-recipe hypotheses; the v4.2 dropout-0 broad-blend run is the strongest quantitative checkpoint so far, but it is larger than GPT-2 small.
 
 ## Repository Layout
 
@@ -42,6 +42,7 @@ The project is organized as a portfolio case study: `sologpt_v1` is the publishe
 | `docs/results/final_3b_modern_small.md` | Final v2 3B-token training and Phase 4 evaluation results. |
 | `docs/results/v2_gpt2_full_diagnostic.md` | Full v2 5.60B vs GPT-2 diagnostic across held-out, external, generation, and multiple-choice evals. |
 | `docs/results/v3_final_gpt2_comparison.md` | Final v3 150M and 123M comparison against GPT-2 small. |
+| `docs/results/v4_2_dropout0_v4_1_blend_150m_10b.md` | Full v4.2 dropout-0 broad-blend 150M result against GPT-2 small. |
 | `docs/results/phase4_generations.md` | Fixed qualitative generation samples for v1, v2, and GPT-2. |
 | `tests/` | CPU-safe smoke tests and tiny v2 config. |
 
@@ -57,6 +58,7 @@ Generated datasets, checkpoints, training logs, and model weights are intentiona
 | `v3-gpt2-scale-1024` | Final 10B run complete | 123,551,232-param 1024-context model, slightly smaller than GPT-2 small; beats GPT-2 on most external checks but not project held-out PPL. |
 | `v3-plus-150m-1024` | Final best v3 model | 151,868,928-param 1024-context model trained on the curated 10B dataset; beats GPT-2 small overall on the fixed v3 suite. |
 | `v4-smollm-reasoning-150m` | Research ablation complete | Same 151,868,928-param architecture trained on a SmolLM-inspired reasoning-heavy 10B mix; improves MC/repetition diagnostics but hurts broad PPL versus v3. |
+| `v4.2-dropout0-v4.1-blend-150m` | Research run complete | Same 151,868,928-param architecture with dropout `0.0`, trained from scratch on a fresh broad v4.1-style 10B blend; best quantitative checkpoint and beats GPT-2 small across the fixed suite, but is not smaller than GPT-2. |
 
 Published Hugging Face artifacts:
 
@@ -164,14 +166,16 @@ Final v3 closeout results:
 
 The final project claim is deliberately narrow: SoloLLM v3 trains GPT-2-class base LMs from scratch on one RTX 3090, and the 150M v3 model beats GPT-2 small overall on the fixed suite. The 123M model is slightly smaller than GPT-2 and wins many external benchmarks, but it does not beat GPT-2 across every metric. See [docs/results/v3_final_gpt2_comparison.md](docs/results/v3_final_gpt2_comparison.md).
 
-Post-v3 v4 research result:
+Post-v3 v4 research results:
 
 | Model | Params | Train tokens | Held-out PPL | WikiText-2 PPL | LAMBADA PPL | MC avg acc norm | Read |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| `v3-plus-150m-1024` | 151.87M | 10.00B | 24.90 | 41.18 | 35.35 | 42.71% | Best general SoloLLM model |
+| GPT-2 small | 124.44M | external/public | 25.32 | 45.32 | 40.62 | 41.05% | Reference baseline |
+| `v3-plus-150m-1024` | 151.87M | 10.00B | 24.90 | 41.18 | 35.35 | 42.71% | Public final v3 checkpoint |
 | `v4-smollm-reasoning-150m` | 151.87M | 9.80B | 27.38 | 43.59 | 38.46 | 43.52% | Better MC/repetition, worse general PPL |
+| `v4.2-dropout0-v4.1-blend-150m` | 151.87M | 9.80B | 24.30 | 41.75 | 34.06 | 43.61% | Best quantitative checkpoint so far |
 
-The v4 result is an ablation, not a new final model. It shows that a reasoning-heavy data mix can improve multiple-choice scoring and reduce repetition while harming general base-LM perplexity. See [docs/results/v4_smollm_reasoning_150m_10b.md](docs/results/v4_smollm_reasoning_150m_10b.md).
+The first v4 run showed that a reasoning-heavy data mix can improve multiple-choice scoring and reduce repetition while harming general base-LM perplexity. The v4.2 run used the same 150M architecture with dropout `0.0` and a broader v4.1-style data blend; it is the strongest quantitative checkpoint so far and beats GPT-2 small on the fixed suite. The caveat is important: v4.2 has `151.9M` parameters versus GPT-2 small's `124.4M`, so this is not a smaller-than-GPT-2 result. See [docs/results/v4_smollm_reasoning_150m_10b.md](docs/results/v4_smollm_reasoning_150m_10b.md) and [docs/results/v4_2_dropout0_v4_1_blend_150m_10b.md](docs/results/v4_2_dropout0_v4_1_blend_150m_10b.md).
 
 Final Phase 4 held-out perplexity on reserved shards `58:60`:
 
@@ -299,9 +303,11 @@ Phase 2 results are recorded in [docs/results/phase2_300m_pilot.md](docs/results
 
 The final v2 run is recorded in [docs/results/final_3b_modern_small.md](docs/results/final_3b_modern_small.md). The 3B-token run completed on a single RTX 3090 with final validation PPL `26.13`, full held-out test PPL `26.26`, and average throughput about `50k tok/s`. A durable 5.60B stretch checkpoint later reached full held-out test PPL `25.56`.
 
-The final v3 result is recorded in [docs/results/v3_final_gpt2_comparison.md](docs/results/v3_final_gpt2_comparison.md). The 150M v3 model is the best final checkpoint and beats GPT-2 small overall on the fixed suite. The 123M v3 model is slightly smaller than GPT-2 and wins most external checks, but it does not clear the strict across-board smaller-than-GPT-2 bar.
+The final v3 result is recorded in [docs/results/v3_final_gpt2_comparison.md](docs/results/v3_final_gpt2_comparison.md). The 150M v3 model is the public final checkpoint and beats GPT-2 small overall on the fixed suite. The 123M v3 model is slightly smaller than GPT-2 and wins most external checks, but it does not clear the strict across-board smaller-than-GPT-2 bar.
 
 The v3 closeout is recorded in [docs/V3_PLAN.md](docs/V3_PLAN.md). It documents what the v2 gaps to GPT-2 showed, how v3 addressed them, and why the final result should be framed as a 150M overall win plus a 123M smaller-model ablation rather than an across-board smaller-than-GPT-2 win.
+
+The post-v3 research result is recorded in [docs/results/v4_2_dropout0_v4_1_blend_150m_10b.md](docs/results/v4_2_dropout0_v4_1_blend_150m_10b.md). V4.2 is the best quantitative checkpoint, but it is larger than GPT-2 small and should be framed as a training-recipe/data-mix win, not a smaller-model win.
 
 ## License
 
