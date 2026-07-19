@@ -190,6 +190,19 @@ Success criteria:
 - tokenizer differences are reported with BPB where appropriate,
 - no new long training starts until this board exists.
 
+### Baseline Board V0
+
+The first quality-only board is complete:
+
+- report: `docs/results/v5_baseline_board.md`,
+- builder: `scripts/build_v5_baseline_board.py`,
+- machine-readable output: `outputs/eval_suites/v5_baseline_board/baseline_board.json`.
+
+This board reuses completed v3/v4 and modern-baseline eval artifacts. It is
+enough to set direction, but it is not the final v5 board. Pending items are
+Pythia 410M, TinyLlama 1.1B, inference tokens/sec, peak inference VRAM, and
+quantized quality/speed.
+
 ## First Implementation Tasks
 
 1. Create a v5 eval manifest listing models, tasks, metrics, and output paths.
