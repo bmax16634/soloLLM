@@ -195,13 +195,15 @@ Success criteria:
 The first quality-only board is complete:
 
 - report: `docs/results/v5_baseline_board.md`,
+- inference report: `docs/results/v5_inference_benchmark.md`,
 - builder: `scripts/build_v5_baseline_board.py`,
+- inference runner: `scripts/run_v5_inference_benchmark.py`,
 - machine-readable output: `outputs/eval_suites/v5_baseline_board/baseline_board.json`.
 
 This board reuses completed v3/v4 and modern-baseline eval artifacts. It is
 enough to set direction, but it is not the final v5 board. Pending items are
-Pythia 410M, TinyLlama 1.1B, inference tokens/sec, peak inference VRAM, and
-quantized quality/speed.
+Pythia 410M, TinyLlama 1.1B, quantized quality/speed, and optionally a cached
+SoloLLM inference implementation.
 
 ## First Implementation Tasks
 

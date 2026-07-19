@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "outputs" / "eval_suites" / "v5_baseline_board"
 REPORT_PATH = ROOT / "docs" / "results" / "v5_baseline_board.md"
 JSON_PATH = OUT_DIR / "baseline_board.json"
+INFERENCE_JSON = ROOT / "outputs" / "eval_suites" / "v5_inference_benchmark" / "inference_benchmark.json"
 
 
 MODERN_DIR = ROOT / "outputs" / "eval_suites" / "modern_baselines_v3_150m"
@@ -158,7 +159,8 @@ def collect() -> dict[str, Any]:
             entry["mc_tasks"] = {row["benchmark"]: row for row in rows}
 
     ordered = [board[model] for model in ORDER if model in board]
-    return {"models": ordered, "source_files": source_files}
+    inference = load_json(INFERENCE_JSON) if INFERENCE_JSON.exists() else None
+    return {"models": ordered, "source_files": source_files, "inference": inference}
 
 
 def markdown(data: dict[str, Any]) -> str:
@@ -170,8 +172,13 @@ def markdown(data: dict[str, Any]) -> str:
     lines.append("## Status")
     lines.append("")
     lines.append("This is the first v5 baseline board. It reuses completed eval artifacts")
-    lines.append("from v3/v4 instead of launching new training. It is quality-focused;")
-    lines.append("inference, VRAM, quantization, Pythia 410M, and TinyLlama remain pending.")
+    lines.append("from v3/v4 instead of launching new training.")
+    if data.get("inference"):
+        lines.append("It includes quality metrics plus the first local inference benchmark.")
+        lines.append("Quantization, Pythia 410M, and TinyLlama remain pending.")
+    else:
+        lines.append("It is quality-focused; inference, VRAM, quantization, Pythia 410M,")
+        lines.append("and TinyLlama remain pending.")
     lines.append("")
     lines.append("The cross-tokenizer language-model metric to read is BPB")
     lines.append("(bits per byte), not raw token perplexity. PPL is still shown for")
@@ -227,17 +234,53 @@ def markdown(data: dict[str, Any]) -> str:
     lines.append("- The largest visible gap is still modern-small-model quality:")
     lines.append("  SmolLM2 135M and especially SmolLM2 360M are well ahead on MC and")
     lines.append("  LAMBADA exact-word accuracy.")
-    lines.append("- The next engineering work is not training. It is completing v5 eval")
-    lines.append("  coverage: missing baselines, inference speed, VRAM, and quantization.")
+    if data.get("inference"):
+        lines.append("- The next engineering work is not training. It is completing v5 eval")
+        lines.append("  coverage: missing baselines, quantization, and possibly SoloLLM KV-cache")
+        lines.append("  inference before choosing a new training scale.")
+    else:
+        lines.append("- The next engineering work is not training. It is completing v5 eval")
+        lines.append("  coverage: missing baselines, inference speed, VRAM, and quantization.")
     lines.append("")
+    if data.get("inference"):
+        lines.append("## Local Inference")
+        lines.append("")
+        lines.append("Batch size `1`, greedy generation, FP16, three fixed prompts. SoloLLM")
+        lines.append("uses the current manual generation path without KV cache; Hugging Face")
+        lines.append("baselines use `transformers.generate` with cache enabled.")
+        lines.append("")
+        lines.append("| Model | Params | Generation path | Tok/s | Peak VRAM |")
+        lines.append("| --- | ---: | --- | ---: | ---: |")
+        for row in data["inference"]["results"]:
+            metadata = row["metadata"]
+            lines.append(
+                "| "
+                + " | ".join(
+                    [
+                        row["label"],
+                        fmt_params(metadata.get("parameter_count")),
+                        metadata.get("generation_path", "n/a"),
+                        f"{row['tokens_per_sec']:.2f}",
+                        f"{row['generation_peak_memory']['peak_allocated_gb']:.2f}GB",
+                    ]
+                )
+                + " |"
+            )
+        lines.append("")
+        lines.append("Inference report: `docs/results/v5_inference_benchmark.md`")
+        lines.append("")
     lines.append("## Pending Board Items")
     lines.append("")
     lines.append("| Item | Status | Reason |")
     lines.append("| --- | --- | --- |")
     lines.append("| Pythia 410M | pending | Larger controlled baseline from the v5 plan. |")
     lines.append("| TinyLlama 1.1B | pending | Stretch local baseline, not a same-size target. |")
-    lines.append("| Inference tokens/sec | pending | Needed for local-usefulness comparison. |")
-    lines.append("| Peak inference VRAM | pending | Needed before choosing 300M vs 400M scale. |")
+    if data.get("inference"):
+        lines.append("| Inference tokens/sec | v0 complete | Covered for the selected practical baseline set. |")
+        lines.append("| Peak inference VRAM | v0 complete | Covered for the selected practical baseline set. |")
+    else:
+        lines.append("| Inference tokens/sec | pending | Needed for local-usefulness comparison. |")
+        lines.append("| Peak inference VRAM | pending | Needed before choosing 300M vs 400M scale. |")
     lines.append("| Quantized quality/speed | pending | Needed before claiming local usability. |")
     lines.append("")
     lines.append("## Source Artifacts")

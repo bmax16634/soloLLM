@@ -46,6 +46,7 @@ The project is organized as a portfolio case study: `sologpt_v1` is the publishe
 | `docs/results/v4_closeout.md` | Final v4 research closeout, including the 150M best checkpoint and 123M smaller-model ablation. |
 | `docs/research/v5_small_model_research_plan.md` | V5 plan for broader local-hardware small-model research beyond GPT-2 chasing. |
 | `docs/results/v5_baseline_board.md` | First v5 quality baseline board comparing SoloLLM v4.2 against GPT-2, Pythia, SmolLM, and SmolLM2. |
+| `docs/results/v5_inference_benchmark.md` | First v5 local inference benchmark for speed and VRAM on selected baseline models. |
 | `docs/results/phase4_generations.md` | Fixed qualitative generation samples for v1, v2, and GPT-2. |
 | `tests/` | CPU-safe smoke tests and tiny v2 config. |
 

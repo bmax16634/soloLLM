@@ -5,8 +5,9 @@ Date: July 19, 2026
 ## Status
 
 This is the first v5 baseline board. It reuses completed eval artifacts
-from v3/v4 instead of launching new training. It is quality-focused;
-inference, VRAM, quantization, Pythia 410M, and TinyLlama remain pending.
+from v3/v4 instead of launching new training.
+It includes quality metrics plus the first local inference benchmark.
+Quantization, Pythia 410M, and TinyLlama remain pending.
 
 The cross-tokenizer language-model metric to read is BPB
 (bits per byte), not raw token perplexity. PPL is still shown for
@@ -51,7 +52,25 @@ continuity, but it is tokenizer-dependent.
   SmolLM2 135M and especially SmolLM2 360M are well ahead on MC and
   LAMBADA exact-word accuracy.
 - The next engineering work is not training. It is completing v5 eval
-  coverage: missing baselines, inference speed, VRAM, and quantization.
+  coverage: missing baselines, quantization, and possibly SoloLLM KV-cache
+  inference before choosing a new training scale.
+
+## Local Inference
+
+Batch size `1`, greedy generation, FP16, three fixed prompts. SoloLLM
+uses the current manual generation path without KV cache; Hugging Face
+baselines use `transformers.generate` with cache enabled.
+
+| Model | Params | Generation path | Tok/s | Peak VRAM |
+| --- | ---: | --- | ---: | ---: |
+| SoloLLM v4.2 150M | 151.87M | manual_no_kv_cache | 123.01 | 0.34GB |
+| SoloLLM v4.2 123M | 123.55M | manual_no_kv_cache | 163.46 | 0.28GB |
+| GPT-2 small | 124.44M | transformers_generate_use_cache | 223.55 | 0.27GB |
+| Pythia 160M | 162.32M | transformers_generate_use_cache | 208.74 | 0.34GB |
+| SmolLM2 135M | 134.52M | transformers_generate_use_cache | 62.97 | 0.28GB |
+| SmolLM2 360M | 361.82M | transformers_generate_use_cache | 56.96 | 0.75GB |
+
+Inference report: `docs/results/v5_inference_benchmark.md`
 
 ## Pending Board Items
 
@@ -59,8 +78,8 @@ continuity, but it is tokenizer-dependent.
 | --- | --- | --- |
 | Pythia 410M | pending | Larger controlled baseline from the v5 plan. |
 | TinyLlama 1.1B | pending | Stretch local baseline, not a same-size target. |
-| Inference tokens/sec | pending | Needed for local-usefulness comparison. |
-| Peak inference VRAM | pending | Needed before choosing 300M vs 400M scale. |
+| Inference tokens/sec | v0 complete | Covered for the selected practical baseline set. |
+| Peak inference VRAM | v0 complete | Covered for the selected practical baseline set. |
 | Quantized quality/speed | pending | Needed before claiming local usability. |
 
 ## Source Artifacts
