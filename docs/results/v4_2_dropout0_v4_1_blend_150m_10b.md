@@ -126,13 +126,15 @@ are not at modern assistant quality.
 
 ## Conclusion
 
-The v4.2 result changes the best-current-model framing:
+The v4.2 150M result changed the best-current-model framing:
 
 - V3 remains the public Hugging Face release and the completed project closeout.
 - V4 reasoning-heavy data alone was a useful failed ablation: better MC and
   lower repetition, worse general perplexity.
 - V4.2 dropout-0 on a broader v4.1-style blend is the best quantitative
   SoloLLM checkpoint and beats GPT-2 small across this fixed suite.
-- The unresolved research goal is the smaller-model claim: the 123M v3 model
-  comes close and wins many external checks, but the across-board win still
-  requires a model at or below GPT-2-small scale.
+- This report covers the 150M result only. The later 123M v4.2 ablation is
+  documented in the v4 closeout: it is smaller than GPT-2 and wins the fixed
+  multiple-choice suite, but does not beat GPT-2 across every metric.
+
+Final v4 closeout: `docs/results/v4_closeout.md`.

@@ -11,10 +11,12 @@ The best public 150M checkpoint beats GPT-2 small overall on the fixed project
 evaluation suite. A smaller 123M ablation beats GPT-2 on most external checks,
 but does not beat it across every metric.
 
-The later `v4-research` branch extends that work with controlled data-mix and
-training-recipe experiments. Its v4.2 dropout-0 broad-blend checkpoint is the
-strongest quantitative SoloLLM model so far and beats GPT-2 small across the
-fixed suite, but it is larger than GPT-2 small.
+The later `v4-research` branch extended that work with controlled data-mix and
+training-recipe experiments. It is now closed. Its v4.2 dropout-0 broad-blend
+150M checkpoint is the strongest quantitative SoloLLM model so far and beats
+GPT-2 small across the fixed suite, but it is larger than GPT-2 small. A 123M
+v4.2 ablation is slightly smaller than GPT-2 and wins the fixed multiple-choice
+suite, but it does not beat GPT-2 across every metric.
 
 ## Why This Project
 
@@ -59,6 +61,7 @@ checkpoint.
 | SoloLLM v3 123M | 123.55M | 9.80B | 25.64 | 41.87 | 36.28 | 42.46% |
 | SoloLLM v3 150M | 151.87M | 10.00B | 24.90 | 41.18 | 35.35 | 42.71% |
 | SoloLLM v4.2 150M | 151.87M | 9.80B | 24.30 | 41.75 | 34.06 | 43.61% |
+| SoloLLM v4.2 123M | 123.55M | 9.80B | 25.56 | 43.75 | 35.45 | 43.13% |
 
 The v4.2 150M model is the best quantitative checkpoint. It beats GPT-2 small on
 the fixed suite, including project held-out perplexity, WikiText-2 perplexity,
@@ -68,10 +71,11 @@ continuation scoring.
 The caveat is important: v4.2 is larger than GPT-2 small. The strict claim
 "smaller than GPT-2 and better across the board" is still not proven.
 
-The 123M model is the smaller-model ablation. It is slightly smaller than GPT-2
-small and wins most external checks, but loses project held-out perplexity and
-some fixed-prompt generation diversity/repetition diagnostics. That means the
-strict claim "smaller than GPT-2 and better across the board" is not proven.
+The v4.2 123M model is the final smaller-model ablation. It is slightly smaller
+than GPT-2 small and wins all fixed multiple-choice checks plus most external
+checks, but loses project held-out perplexity and LAMBADA continuation accuracy.
+That means the strict claim "smaller than GPT-2 and better across the board" is
+not proven.
 
 ## Technical Stack
 
@@ -95,8 +99,9 @@ The final honest claim:
 > SoloLLM trains GPT-2-class base LMs from scratch on one RTX 3090. The public
 > v3 150M model beats GPT-2 small overall on a fixed evaluation suite, and the
 > later v4.2 150M research checkpoint improves the quantitative result across
-> that suite. The smaller 123M ablation beats GPT-2 on most external benchmarks
-> but does not fully clear the strict across-board smaller-than-GPT-2 bar.
+> that suite. The final v4.2 123M ablation is slightly smaller than GPT-2 and
+> beats GPT-2 on the fixed multiple-choice suite, but does not fully clear the
+> strict across-board smaller-than-GPT-2 bar.
 
 ## Key Artifacts
 
@@ -106,6 +111,7 @@ The final honest claim:
 - Public completion demo: <https://huggingface.co/spaces/bmax16634/sologpt-v3-150m-demo>
 - Final report: `docs/results/v3_final_gpt2_comparison.md`
 - V4.2 research report: `docs/results/v4_2_dropout0_v4_1_blend_150m_10b.md`
+- V4 closeout report: `docs/results/v4_closeout.md`
 - Artifact manifest: `docs/V3_ARTIFACT_MANIFEST.md`
 - V3 plan and closeout: `docs/V3_PLAN.md`
 - V3 dataset plan: `docs/V3_DATA_PLAN.md`
@@ -113,3 +119,4 @@ The final honest claim:
 - Final 150M local model: `outputs/sologpt_v3/v3_fresh_10b_plus_150m_1024_10bdata/final_model.pt`
 - Final 123M local model: `outputs/sologpt_v3/v3_fresh_10b_gpt2scale_123m_1024_10bdata/final_model.pt`
 - V4.2 150M local model: `outputs/sologpt_v4/v4_2_dropout0_v4_1_blend_10b_150m_1024/final_model.pt`
+- V4.2 123M local model: `outputs/sologpt_v4/v4_2_dropout0_v4_1_blend_10b_123m_1024/final_model.pt`

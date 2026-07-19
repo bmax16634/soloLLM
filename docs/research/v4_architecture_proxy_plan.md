@@ -175,9 +175,51 @@ Multiple-choice normalized detail:
 | ARC-Challenge | 22.07% | 23.08% |
 | WinoGrande | 49.72% | 51.38% |
 
-Decision: full-scale v4.2 passed the scale test. It is now the best
+Decision: full-scale v4.2 passed the scale test. It became the best
 quantitative SoloLLM checkpoint and the first v4 run to beat GPT-2 small across
-the fixed quantitative suite. The caveat is that it remains a larger model than
-GPT-2 small, so the smaller-than-GPT-2 hypothesis is still open.
+the fixed quantitative suite. The caveat was that it remained larger than
+GPT-2 small, which motivated the 123M ablation below.
 
 Full report: `docs/results/v4_2_dropout0_v4_1_blend_150m_10b.md`.
+
+## V4.2 123M Ablation
+
+To close the smaller-than-GPT-2 question, the same v4.2 dropout-0 broad-blend
+recipe was trained with the 12-layer, 768-width, 12-head shape:
+
+| Item | Value |
+|---|---:|
+| Parameters | 123,551,232 |
+| GPT-2 small parameters | 124,439,808 |
+| Train tokens | 9,800,572,928 |
+| Final train loss | 3.0258 |
+| Best internal validation PPL | 20.05 |
+| Training time | 67.86h |
+| Peak VRAM | 11.6GB |
+
+Final comparison:
+
+| Benchmark | GPT-2 small | v4.2 blend 150M | v4.2 blend 123M |
+|---|---:|---:|---:|
+| Project held-out PPL | 25.32 | 24.30 | 25.56 |
+| WikiText-2 PPL | 45.32 | 41.75 | 43.75 |
+| LAMBADA PPL | 40.62 | 34.06 | 35.45 |
+| LAMBADA last-token acc | 46.67% | 47.27% | 46.30% |
+| LAMBADA last-word exact | 32.60% | 33.05% | 31.69% |
+| MC avg acc norm | 41.05% | 43.61% | 43.13% |
+
+Read: the 123M ablation is slightly smaller than GPT-2 small and beats GPT-2 on
+all fixed multiple-choice checks plus WikiText-2 and LAMBADA perplexity. It
+misses project held-out PPL, LAMBADA last-token accuracy, and LAMBADA exact-word
+accuracy.
+
+## V4 Closeout Decision
+
+V4 is closed. The phase produced a strong 150M recipe/data-mix win and a useful
+123M smaller-model ablation, but the strict smaller-than-GPT-2 across-board
+claim remains unproven. Further work should not keep tuning against the same
+GPT-2 suite. The next phase should be framed as broader small-model research:
+modern small baselines, locked evals, local inference and quantization metrics,
+and practical quality on consumer hardware.
+
+Closeout report: `docs/results/v4_closeout.md`.

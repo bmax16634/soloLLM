@@ -14,7 +14,7 @@ The project is organized as a portfolio case study: `sologpt_v1` is the publishe
 - v2 implementation with RoPE attention, tied embeddings, checkpoint metadata, JSONL metrics, validation hooks, gradient clipping, resume support, and CPU smoke tests.
 - v3 10B-token data mixture with FineWeb-Edu, DCLM, FineWeb, Wikipedia, and OpenWebText.
 - Final v3 full eval suite against GPT-2 small across held-out perplexity, WikiText-2, LAMBADA, multiple-choice scoring, and fixed-prompt generation metrics.
-- v4 research branch testing architecture, data-mix, and training-recipe hypotheses; the v4.2 dropout-0 broad-blend run is the strongest quantitative checkpoint so far, but it is larger than GPT-2 small.
+- v4 research branch testing architecture, data-mix, and training-recipe hypotheses; closed with a 150M v4.2 checkpoint that beats GPT-2 small across the fixed suite and a 123M v4.2 ablation that is smaller than GPT-2 and wins most, but not all, checks.
 
 ## Repository Layout
 
@@ -43,6 +43,7 @@ The project is organized as a portfolio case study: `sologpt_v1` is the publishe
 | `docs/results/v2_gpt2_full_diagnostic.md` | Full v2 5.60B vs GPT-2 diagnostic across held-out, external, generation, and multiple-choice evals. |
 | `docs/results/v3_final_gpt2_comparison.md` | Final v3 150M and 123M comparison against GPT-2 small. |
 | `docs/results/v4_2_dropout0_v4_1_blend_150m_10b.md` | Full v4.2 dropout-0 broad-blend 150M result against GPT-2 small. |
+| `docs/results/v4_closeout.md` | Final v4 research closeout, including the 150M best checkpoint and 123M smaller-model ablation. |
 | `docs/results/phase4_generations.md` | Fixed qualitative generation samples for v1, v2, and GPT-2. |
 | `tests/` | CPU-safe smoke tests and tiny v2 config. |
 
@@ -59,6 +60,7 @@ Generated datasets, checkpoints, training logs, and model weights are intentiona
 | `v3-plus-150m-1024` | Final best v3 model | 151,868,928-param 1024-context model trained on the curated 10B dataset; beats GPT-2 small overall on the fixed v3 suite. |
 | `v4-smollm-reasoning-150m` | Research ablation complete | Same 151,868,928-param architecture trained on a SmolLM-inspired reasoning-heavy 10B mix; improves MC/repetition diagnostics but hurts broad PPL versus v3. |
 | `v4.2-dropout0-v4.1-blend-150m` | Research run complete | Same 151,868,928-param architecture with dropout `0.0`, trained from scratch on a fresh broad v4.1-style 10B blend; best quantitative checkpoint and beats GPT-2 small across the fixed suite, but is not smaller than GPT-2. |
+| `v4.2-dropout0-v4.1-blend-123m` | Research ablation complete | 123,551,232-param version of the v4.2 recipe; slightly smaller than GPT-2 small, wins all fixed MC checks and most external checks, but does not beat GPT-2 across every metric. |
 
 Published Hugging Face artifacts:
 
@@ -174,8 +176,9 @@ Post-v3 v4 research results:
 | `v3-plus-150m-1024` | 151.87M | 10.00B | 24.90 | 41.18 | 35.35 | 42.71% | Public final v3 checkpoint |
 | `v4-smollm-reasoning-150m` | 151.87M | 9.80B | 27.38 | 43.59 | 38.46 | 43.52% | Better MC/repetition, worse general PPL |
 | `v4.2-dropout0-v4.1-blend-150m` | 151.87M | 9.80B | 24.30 | 41.75 | 34.06 | 43.61% | Best quantitative checkpoint so far |
+| `v4.2-dropout0-v4.1-blend-123m` | 123.55M | 9.80B | 25.56 | 43.75 | 35.45 | 43.13% | Smaller than GPT-2; wins MC suite, but not across the board |
 
-The first v4 run showed that a reasoning-heavy data mix can improve multiple-choice scoring and reduce repetition while harming general base-LM perplexity. The v4.2 run used the same 150M architecture with dropout `0.0` and a broader v4.1-style data blend; it is the strongest quantitative checkpoint so far and beats GPT-2 small on the fixed suite. The caveat is important: v4.2 has `151.9M` parameters versus GPT-2 small's `124.4M`, so this is not a smaller-than-GPT-2 result. See [docs/results/v4_smollm_reasoning_150m_10b.md](docs/results/v4_smollm_reasoning_150m_10b.md) and [docs/results/v4_2_dropout0_v4_1_blend_150m_10b.md](docs/results/v4_2_dropout0_v4_1_blend_150m_10b.md).
+The first v4 run showed that a reasoning-heavy data mix can improve multiple-choice scoring and reduce repetition while harming general base-LM perplexity. The v4.2 run used dropout `0.0` and a broader v4.1-style data blend. At 150M parameters it is the strongest quantitative checkpoint and beats GPT-2 small on the fixed suite. At 123M parameters it is slightly smaller than GPT-2 and wins the fixed multiple-choice suite, but it misses project held-out PPL and LAMBADA continuation accuracy. V4 is now closed; further work should move to a broader v5 small-model research frame instead of repeatedly tuning against the same GPT-2 suite. See [docs/results/v4_smollm_reasoning_150m_10b.md](docs/results/v4_smollm_reasoning_150m_10b.md), [docs/results/v4_2_dropout0_v4_1_blend_150m_10b.md](docs/results/v4_2_dropout0_v4_1_blend_150m_10b.md), and [docs/results/v4_closeout.md](docs/results/v4_closeout.md).
 
 Final Phase 4 held-out perplexity on reserved shards `58:60`:
 
@@ -307,7 +310,7 @@ The final v3 result is recorded in [docs/results/v3_final_gpt2_comparison.md](do
 
 The v3 closeout is recorded in [docs/V3_PLAN.md](docs/V3_PLAN.md). It documents what the v2 gaps to GPT-2 showed, how v3 addressed them, and why the final result should be framed as a 150M overall win plus a 123M smaller-model ablation rather than an across-board smaller-than-GPT-2 win.
 
-The post-v3 research result is recorded in [docs/results/v4_2_dropout0_v4_1_blend_150m_10b.md](docs/results/v4_2_dropout0_v4_1_blend_150m_10b.md). V4.2 is the best quantitative checkpoint, but it is larger than GPT-2 small and should be framed as a training-recipe/data-mix win, not a smaller-model win.
+The post-v3 research closeout is recorded in [docs/results/v4_closeout.md](docs/results/v4_closeout.md). V4.2 150M is the best quantitative checkpoint, but it is larger than GPT-2 small and should be framed as a training-recipe/data-mix win. V4.2 123M is the smaller-model ablation: it wins all fixed MC checks and most external checks, but not the full suite.
 
 ## License
 

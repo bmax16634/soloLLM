@@ -196,25 +196,27 @@ changed the training recipe and data blend:
 
 The full v4.2 run became the best quantitative SoloLLM checkpoint:
 
-| Benchmark | GPT-2 small | v3 150M | v4 150M | v4.2 150M |
-| --- | ---: | ---: | ---: | ---: |
-| Project held-out PPL | 25.32 | 24.90 | 27.38 | 24.30 |
-| WikiText-2 PPL | 45.32 | 41.18 | 43.59 | 41.75 |
-| LAMBADA PPL | 40.62 | 35.35 | 38.46 | 34.06 |
-| LAMBADA last-word accuracy | 32.60% | 33.07% | 32.91% | 33.05% |
-| Multiple-choice avg acc norm | 41.05% | 42.71% | 43.52% | 43.61% |
-| Repeated bigram fraction | 17.15% | 17.23% | 8.55% | 15.34% |
+| Benchmark | GPT-2 small | v3 150M | v4 150M | v4.2 150M | v4.2 123M |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Project held-out PPL | 25.32 | 24.90 | 27.38 | 24.30 | 25.56 |
+| WikiText-2 PPL | 45.32 | 41.18 | 43.59 | 41.75 | 43.75 |
+| LAMBADA PPL | 40.62 | 35.35 | 38.46 | 34.06 | 35.45 |
+| LAMBADA last-word accuracy | 32.60% | 33.07% | 32.91% | 33.05% | 31.69% |
+| Multiple-choice avg acc norm | 41.05% | 42.71% | 43.52% | 43.61% | 43.13% |
+| Repeated bigram fraction | 17.15% | 17.23% | 8.55% | 15.34% | 13.47% |
 
-The current v4 research finding is:
+The final v4 research finding is:
 
 > Reasoning-heavy data alone improved multiple-choice and repetition metrics but
 > damaged broad PPL. A broader v4.1-style blend plus dropout `0.0` recovered
 > broad language-modeling quality and produced the strongest quantitative
-> checkpoint. This is still a larger-than-GPT-2 result, not proof of a smaller
-> model beating GPT-2 across the board.
+> checkpoint at 150M parameters. The 123M ablation is slightly smaller than
+> GPT-2 and wins the fixed multiple-choice suite, but it does not beat GPT-2
+> across every metric.
 
 Reports: `docs/results/v4_smollm_reasoning_150m_10b.md` and
-`docs/results/v4_2_dropout0_v4_1_blend_150m_10b.md`.
+`docs/results/v4_2_dropout0_v4_1_blend_150m_10b.md`. Final closeout:
+`docs/results/v4_closeout.md`.
 
 ## Current Verification
 
@@ -243,11 +245,12 @@ Resume version:
 
 Case-study version:
 
-> V1 proved the pipeline could work. V2 turned the project into an ML systems case study. V3 turned it into a full empirical comparison: data curation, scaling decisions, fixed GPT-2 evals, a 150M public model that wins overall, and a smaller 123M ablation that shows exactly where the strict smaller-model claim still fails. V4 research added controlled data-mix and training-recipe experiments, ending with a v4.2 checkpoint that beats GPT-2 small across the fixed quantitative suite while remaining larger than GPT-2.
+> V1 proved the pipeline could work. V2 turned the project into an ML systems case study. V3 turned it into a full empirical comparison: data curation, scaling decisions, fixed GPT-2 evals, a 150M public model that wins overall, and a smaller 123M ablation that shows exactly where the strict smaller-model claim still fails. V4 research added controlled data-mix and training-recipe experiments, ending with a v4.2 150M checkpoint that beats GPT-2 small across the fixed quantitative suite and a 123M checkpoint that is smaller than GPT-2 and wins the MC suite but not every metric.
 
 ## Remaining Work
 
 The v3 closeout, result docs, Hugging Face model repos, and public demo are
-complete. The v4.2 research docs are complete locally. Publishing the v4.2
-checkpoint is optional; the main unresolved research target is whether the same
-across-suite win can be reproduced at or below GPT-2-small parameter count.
+complete. V4 is closed locally. Publishing v4.2 checkpoints is optional. Any
+further work should move into a separate v5 small-model research frame with
+broader baselines, locked evals, inference metrics, and local-usefulness goals
+instead of repeatedly tuning against the same GPT-2 comparison suite.
