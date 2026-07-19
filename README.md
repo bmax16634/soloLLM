@@ -44,6 +44,7 @@ The project is organized as a portfolio case study: `sologpt_v1` is the publishe
 | `docs/results/v3_final_gpt2_comparison.md` | Final v3 150M and 123M comparison against GPT-2 small. |
 | `docs/results/v4_2_dropout0_v4_1_blend_150m_10b.md` | Full v4.2 dropout-0 broad-blend 150M result against GPT-2 small. |
 | `docs/results/v4_closeout.md` | Final v4 research closeout, including the 150M best checkpoint and 123M smaller-model ablation. |
+| `docs/research/v5_small_model_research_plan.md` | V5 plan for broader local-hardware small-model research beyond GPT-2 chasing. |
 | `docs/results/phase4_generations.md` | Fixed qualitative generation samples for v1, v2, and GPT-2. |
 | `tests/` | CPU-safe smoke tests and tiny v2 config. |
 
@@ -311,6 +312,8 @@ The final v3 result is recorded in [docs/results/v3_final_gpt2_comparison.md](do
 The v3 closeout is recorded in [docs/V3_PLAN.md](docs/V3_PLAN.md). It documents what the v2 gaps to GPT-2 showed, how v3 addressed them, and why the final result should be framed as a 150M overall win plus a 123M smaller-model ablation rather than an across-board smaller-than-GPT-2 win.
 
 The post-v3 research closeout is recorded in [docs/results/v4_closeout.md](docs/results/v4_closeout.md). V4.2 150M is the best quantitative checkpoint, but it is larger than GPT-2 small and should be framed as a training-recipe/data-mix win. V4.2 123M is the smaller-model ablation: it wins all fixed MC checks and most external checks, but not the full suite.
+
+The next research frame is [docs/research/v5_small_model_research_plan.md](docs/research/v5_small_model_research_plan.md). V5 should start with an eval/baseline board against modern small models before any new long training run.
 
 ## License
 

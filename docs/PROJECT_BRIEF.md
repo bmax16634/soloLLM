@@ -250,7 +250,6 @@ Case-study version:
 ## Remaining Work
 
 The v3 closeout, result docs, Hugging Face model repos, and public demo are
-complete. V4 is closed locally. Publishing v4.2 checkpoints is optional. Any
-further work should move into a separate v5 small-model research frame with
-broader baselines, locked evals, inference metrics, and local-usefulness goals
-instead of repeatedly tuning against the same GPT-2 comparison suite.
+complete. V4 is closed locally. Publishing v4.2 checkpoints is optional. The
+next research frame is documented in `docs/research/v5_small_model_research_plan.md`.
+V5 should begin with a broader baseline/eval board, not a new long training run.
