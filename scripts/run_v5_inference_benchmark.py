@@ -58,8 +58,10 @@ DEFAULT_SPECS = [
     ),
     BenchSpec(label="GPT-2 small", kind="hf", hf_id="gpt2"),
     BenchSpec(label="Pythia 160M", kind="hf", hf_id="EleutherAI/pythia-160m-deduped"),
+    BenchSpec(label="Pythia 410M", kind="hf", hf_id="EleutherAI/pythia-410m-deduped"),
     BenchSpec(label="SmolLM2 135M", kind="hf", hf_id="HuggingFaceTB/SmolLM2-135M"),
     BenchSpec(label="SmolLM2 360M", kind="hf", hf_id="HuggingFaceTB/SmolLM2-360M"),
+    BenchSpec(label="TinyLlama 1.1B", kind="hf", hf_id="TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T"),
 ]
 
 
@@ -291,7 +293,7 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
     lines = [
         "# V5 Inference Benchmark",
         "",
-        "Date: July 19, 2026",
+        "Date: July 20, 2026",
         "",
         "## Method",
         "",
@@ -336,6 +338,8 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
             "  through `transformers.generate`.",
             "- Use this board for practical local planning: model size, memory headroom,",
             "  and whether implementing a SoloLLM KV cache should be a v5 priority.",
+            "- Quantized benchmarking is not included yet because local bitsandbytes",
+            "  CUDA backend loading currently fails with missing `libnvJitLink.so.13`.",
             "",
             f"Raw JSON: `{Path(payload['output_json']).relative_to(ROOT)}`",
         ]

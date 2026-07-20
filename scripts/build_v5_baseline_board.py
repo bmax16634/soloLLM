@@ -19,6 +19,7 @@ INFERENCE_JSON = ROOT / "outputs" / "eval_suites" / "v5_inference_benchmark" / "
 MODERN_DIR = ROOT / "outputs" / "eval_suites" / "modern_baselines_v3_150m"
 V4_150_DIR = ROOT / "outputs" / "eval_suites" / "v4_2_dropout0_v4_1_blend_10b_150m_gpt2_full_suite"
 V4_123_DIR = ROOT / "outputs" / "eval_suites" / "v4_2_dropout0_v4_1_blend_10b_123m_gpt2_full_suite"
+MISSING_BASELINES_DIR = ROOT / "outputs" / "eval_suites" / "v5_missing_baselines"
 
 
 @dataclass(frozen=True)
@@ -44,6 +45,11 @@ SOURCES = [
         external_json=V4_123_DIR / "external_full_candidate_gpt2.json",
         mc_json=V4_123_DIR / "multiple_choice_full_candidate_gpt2.json",
     ),
+    Source(
+        label="v5_missing_baselines",
+        external_json=MISSING_BASELINES_DIR / "external_missing_baselines.json",
+        mc_json=MISSING_BASELINES_DIR / "multiple_choice_missing_baselines.json",
+    ),
 ]
 
 
@@ -55,9 +61,11 @@ DISPLAY = {
     "distilgpt2": "DistilGPT2",
     "pythia-70m": "Pythia 70M",
     "pythia-160m": "Pythia 160M",
+    "pythia-410m": "Pythia 410M",
     "smollm-135m": "SmolLM 135M",
     "smollm2-135m": "SmolLM2 135M",
     "smollm2-360m": "SmolLM2 360M",
+    "tinyllama-1.1b": "TinyLlama 1.1B",
 }
 
 ORDER = [
@@ -68,9 +76,11 @@ ORDER = [
     "distilgpt2",
     "pythia-70m",
     "pythia-160m",
+    "pythia-410m",
     "smollm-135m",
     "smollm2-135m",
     "smollm2-360m",
+    "tinyllama-1.1b",
 ]
 
 NOTES = {
@@ -81,9 +91,11 @@ NOTES = {
     "distilgpt2": "Compressed GPT-2-family reference.",
     "pythia-70m": "Controlled open baseline below SoloLLM scale.",
     "pythia-160m": "Controlled open baseline near SoloLLM 150M scale.",
+    "pythia-410m": "Larger controlled baseline; useful direction check, not same-scale.",
     "smollm-135m": "Modern compact baseline.",
     "smollm2-135m": "Primary modern same-scale target.",
     "smollm2-360m": "Modern compact upper-bound target.",
+    "tinyllama-1.1b": "Stretch local baseline; quality target, not same-size.",
 }
 
 
@@ -97,7 +109,7 @@ def fmt_float(value: Any, digits: int = 4) -> str:
     if value is None:
         return "n/a"
     if isinstance(value, float):
-        if value == float("inf"):
+        if value == float("inf") or value > 1e100:
             return "inf"
         return f"{value:.{digits}f}"
     return str(value)
@@ -167,7 +179,7 @@ def markdown(data: dict[str, Any]) -> str:
     lines: list[str] = []
     lines.append("# V5 Baseline Board")
     lines.append("")
-    lines.append("Date: July 19, 2026")
+    lines.append("Date: July 20, 2026")
     lines.append("")
     lines.append("## Status")
     lines.append("")
@@ -175,7 +187,8 @@ def markdown(data: dict[str, Any]) -> str:
     lines.append("from v3/v4 instead of launching new training.")
     if data.get("inference"):
         lines.append("It includes quality metrics plus the first local inference benchmark.")
-        lines.append("Quantization, Pythia 410M, and TinyLlama remain pending.")
+        lines.append("Pythia 410M and TinyLlama 1.1B are now included.")
+        lines.append("Quantization is blocked locally by a bitsandbytes CUDA library mismatch.")
     else:
         lines.append("It is quality-focused; inference, VRAM, quantization, Pythia 410M,")
         lines.append("and TinyLlama remain pending.")
@@ -231,13 +244,16 @@ def markdown(data: dict[str, Any]) -> str:
     lines.append("- SoloLLM v4.2 150M remains the strongest SoloLLM checkpoint.")
     lines.append("- SoloLLM v4.2 123M is competitive with GPT-2 and Pythia 160M, but")
     lines.append("  SmolLM2 135M is the main same-scale modern target.")
-    lines.append("- The largest visible gap is still modern-small-model quality:")
+    lines.append("- The largest same-scale gap is still modern-small-model quality:")
     lines.append("  SmolLM2 135M and especially SmolLM2 360M are well ahead on MC and")
     lines.append("  LAMBADA exact-word accuracy.")
+    lines.append("- Pythia 410M and TinyLlama 1.1B confirm the expected scaling curve:")
+    lines.append("  substantially larger modern baselines are far ahead on BPB and")
+    lines.append("  continuation accuracy.")
     if data.get("inference"):
-        lines.append("- The next engineering work is not training. It is completing v5 eval")
-        lines.append("  coverage: missing baselines, quantization, and possibly SoloLLM KV-cache")
-        lines.append("  inference before choosing a new training scale.")
+        lines.append("- The board is complete enough to choose v5 direction. The remaining")
+        lines.append("  engineering gap is SoloLLM KV-cache inference; quantized benchmarking")
+        lines.append("  needs the local bitsandbytes CUDA issue fixed first.")
     else:
         lines.append("- The next engineering work is not training. It is completing v5 eval")
         lines.append("  coverage: missing baselines, inference speed, VRAM, and quantization.")
@@ -273,15 +289,16 @@ def markdown(data: dict[str, Any]) -> str:
     lines.append("")
     lines.append("| Item | Status | Reason |")
     lines.append("| --- | --- | --- |")
-    lines.append("| Pythia 410M | pending | Larger controlled baseline from the v5 plan. |")
-    lines.append("| TinyLlama 1.1B | pending | Stretch local baseline, not a same-size target. |")
+    lines.append("| Pythia 410M | complete | Included in external quality and multiple-choice board. |")
+    lines.append("| TinyLlama 1.1B | complete | Included as stretch local quality baseline. |")
     if data.get("inference"):
         lines.append("| Inference tokens/sec | v0 complete | Covered for the selected practical baseline set. |")
         lines.append("| Peak inference VRAM | v0 complete | Covered for the selected practical baseline set. |")
     else:
         lines.append("| Inference tokens/sec | pending | Needed for local-usefulness comparison. |")
         lines.append("| Peak inference VRAM | pending | Needed before choosing 300M vs 400M scale. |")
-    lines.append("| Quantized quality/speed | pending | Needed before claiming local usability. |")
+    lines.append("| Quantized quality/speed | blocked | `bitsandbytes` fails to load CUDA backend locally: missing `libnvJitLink.so.13`. |")
+    lines.append("| SoloLLM KV-cache inference | pending | Requires implementation work; current SoloLLM speed uses manual no-cache generation. |")
     lines.append("")
     lines.append("## Source Artifacts")
     lines.append("")
