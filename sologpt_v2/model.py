@@ -18,6 +18,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+KVCache = list[tuple[torch.Tensor, torch.Tensor]]
+
 
 def count_parameters(model: nn.Module, trainable_only: bool = False) -> int:
     """Return the number of unique parameters in a module."""
@@ -59,18 +61,25 @@ class RotaryEmbedding(nn.Module):
         self.cos_cached = freqs.cos().to(dtype=dtype)
         self.sin_cached = freqs.sin().to(dtype=dtype)
 
-    def forward(self, q: torch.Tensor, k: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(
+        self,
+        q: torch.Tensor,
+        k: torch.Tensor,
+        *,
+        position_offset: int = 0,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         seq_len = q.size(-2)
+        needed_len = position_offset + seq_len
         cache_missing = self.cos_cached.numel() == 0
-        cache_too_short = cache_missing or self.cos_cached.size(0) < seq_len
+        cache_too_short = cache_missing or self.cos_cached.size(0) < needed_len
         cache_wrong_device = cache_missing or self.cos_cached.device != q.device
         cache_wrong_dtype = cache_missing or self.cos_cached.dtype != q.dtype
 
         if cache_too_short or cache_wrong_device or cache_wrong_dtype:
-            self._build_cache(seq_len, q.device, q.dtype)
+            self._build_cache(needed_len, q.device, q.dtype)
 
-        cos = self.cos_cached[:seq_len][None, None, :, :]
-        sin = self.sin_cached[:seq_len][None, None, :, :]
+        cos = self.cos_cached[position_offset:needed_len][None, None, :, :]
+        sin = self.sin_cached[position_offset:needed_len][None, None, :, :]
         return _apply_rope(q, cos, sin), _apply_rope(k, cos, sin)
 
 
@@ -135,19 +144,47 @@ class CausalSelfAttentionRoPE(nn.Module):
             .reshape(batch_size, self.n_heads, seq_len, head_dim)
         )
 
-    def _manual_attention(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
-        seq_len = q.size(-2)
+    def _causal_mask(
+        self,
+        q_len: int,
+        k_len: int,
+        past_len: int,
+        device: torch.device,
+        dtype: torch.dtype,
+    ) -> torch.Tensor:
+        query_positions = past_len + torch.arange(q_len, device=device)
+        key_positions = torch.arange(k_len, device=device)
+        masked = key_positions[None, :] > query_positions[:, None]
+        mask = torch.zeros(q_len, k_len, device=device, dtype=dtype)
+        return mask.masked_fill(masked, float("-inf"))
+
+    def _manual_attention(
+        self,
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+        *,
+        past_len: int = 0,
+    ) -> torch.Tensor:
+        q_len = q.size(-2)
+        k_len = k.size(-2)
         scores = (q @ k.transpose(-2, -1)) / math.sqrt(self.head_dim)
-        causal_mask = torch.triu(
-            torch.ones(seq_len, seq_len, device=q.device, dtype=torch.bool),
-            diagonal=1,
-        )
+        query_positions = past_len + torch.arange(q_len, device=q.device)
+        key_positions = torch.arange(k_len, device=q.device)
+        causal_mask = key_positions[None, :] > query_positions[:, None]
         scores = scores.masked_fill(causal_mask, float("-inf"))
         probs = F.softmax(scores, dim=-1)
         probs = F.dropout(probs, p=self.dropout, training=self.training)
         return probs @ v
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        past_key_value: tuple[torch.Tensor, torch.Tensor] | None = None,
+        *,
+        use_cache: bool = False,
+        cache_position: int | None = None,
+    ) -> torch.Tensor | tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
         batch_size, seq_len, channels = x.shape
 
         if self.qkv is not None:
@@ -164,24 +201,52 @@ class CausalSelfAttentionRoPE(nn.Module):
             k = self.k_proj(x).view(batch_size, seq_len, self.n_kv_heads, self.head_dim).transpose(1, 2)
             v = self.v_proj(x).view(batch_size, seq_len, self.n_kv_heads, self.head_dim).transpose(1, 2)
 
-        q, k = self.rope(q, k)
-        k = self._repeat_kv(k)
-        v = self._repeat_kv(v)
+        past_len = 0
+        if cache_position is not None:
+            past_len = int(cache_position)
+        elif past_key_value is not None:
+            past_k, past_v = past_key_value
+            past_len = past_k.size(-2)
+
+        q, k = self.rope(q, k, position_offset=past_len)
+        present_key_value = (k, v)
+        if past_key_value is not None:
+            if cache_position is None:
+                k = torch.cat((past_key_value[0], k), dim=-2)
+                v = torch.cat((past_key_value[1], v), dim=-2)
+                present_key_value = (k, v)
+            else:
+                cache_end = cache_position + seq_len
+                past_key_value[0][:, :, cache_position:cache_end, :] = k
+                past_key_value[1][:, :, cache_position:cache_end, :] = v
+                k = past_key_value[0][:, :, :cache_end, :]
+                v = past_key_value[1][:, :, :cache_end, :]
+                present_key_value = past_key_value
+
+        attn_k = self._repeat_kv(k)
+        attn_v = self._repeat_kv(v)
 
         if hasattr(F, "scaled_dot_product_attention"):
+            use_native_causal = past_len == 0
+            attn_mask = None
+            if not use_native_causal:
+                attn_mask = self._causal_mask(seq_len, attn_k.size(-2), past_len, q.device, q.dtype)
             attn = F.scaled_dot_product_attention(
                 q,
-                k,
-                v,
-                attn_mask=None,
+                attn_k,
+                attn_v,
+                attn_mask=attn_mask,
                 dropout_p=self.dropout if self.training else 0.0,
-                is_causal=True,
+                is_causal=use_native_causal,
             )
         else:
-            attn = self._manual_attention(q, k, v)
+            attn = self._manual_attention(q, attn_k, attn_v, past_len=past_len)
 
         y = attn.transpose(1, 2).contiguous().view(batch_size, seq_len, channels)
-        return self.resid_drop(self.proj(y))
+        y = self.resid_drop(self.proj(y))
+        if use_cache:
+            return y, present_key_value
+        return y
 
 
 class RMSNorm(nn.Module):
@@ -282,9 +347,28 @@ class DecoderLayer(nn.Module):
             mlp_hidden_dim=mlp_hidden_dim,
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = x + self.attn(self.norm1(x))
+    def forward(
+        self,
+        x: torch.Tensor,
+        past_key_value: tuple[torch.Tensor, torch.Tensor] | None = None,
+        *,
+        use_cache: bool = False,
+        cache_position: int | None = None,
+    ) -> torch.Tensor | tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
+        attn_output = self.attn(
+            self.norm1(x),
+            past_key_value=past_key_value,
+            use_cache=use_cache,
+            cache_position=cache_position,
+        )
+        present_key_value = None
+        if use_cache:
+            attn_output, present_key_value = attn_output
+        x = x + attn_output
         x = x + self.ff(self.norm2(x))
+        if use_cache:
+            assert present_key_value is not None
+            return x, present_key_value
         return x
 
 
@@ -329,6 +413,30 @@ class DecoderBlock(nn.Module):
         for layer in self.layers:
             x = layer(x)
         return self.lm_head(self.norm(x))
+
+    def forward_with_cache(
+        self,
+        x: torch.Tensor,
+        past_key_values: KVCache | None = None,
+        *,
+        cache_position: int | None = None,
+    ) -> tuple[torch.Tensor, KVCache]:
+        if past_key_values is not None and len(past_key_values) != len(self.layers):
+            raise ValueError(
+                f"past_key_values must have {len(self.layers)} layers, got {len(past_key_values)}"
+            )
+
+        next_key_values: KVCache = []
+        for index, layer in enumerate(self.layers):
+            past_key_value = None if past_key_values is None else past_key_values[index]
+            x, present_key_value = layer(
+                x,
+                past_key_value=past_key_value,
+                use_cache=True,
+                cache_position=cache_position,
+            )
+            next_key_values.append(present_key_value)
+        return self.lm_head(self.norm(x)), next_key_values
 
 
 class SoloGPT_v2(nn.Module):
@@ -410,6 +518,57 @@ class SoloGPT_v2(nn.Module):
 
         x = self.input_embed(input_ids)
         return self.decoder(x)
+
+    def forward_with_cache(
+        self,
+        input_ids: torch.Tensor,
+        past_key_values: KVCache | None = None,
+        *,
+        cache_position: int | None = None,
+    ) -> tuple[torch.Tensor, KVCache]:
+        if input_ids.dim() != 2:
+            raise ValueError(f"input_ids must have shape (batch, seq), got {tuple(input_ids.shape)}")
+
+        seq_len = input_ids.size(1)
+        past_len = 0
+        if cache_position is not None:
+            past_len = int(cache_position)
+        elif past_key_values:
+            past_len = past_key_values[0][0].size(-2)
+        if past_len + seq_len > self.max_seq_len:
+            raise ValueError(
+                f"cached sequence length {past_len + seq_len} exceeds max_seq_len={self.max_seq_len}"
+            )
+
+        x = self.input_embed(input_ids)
+        return self.decoder.forward_with_cache(
+            x,
+            past_key_values=past_key_values,
+            cache_position=cache_position,
+        )
+
+    def allocate_kv_cache(
+        self,
+        batch_size: int,
+        max_length: int,
+        *,
+        device: torch.device | str | None = None,
+        dtype: torch.dtype | None = None,
+    ) -> KVCache:
+        if max_length > self.max_seq_len:
+            raise ValueError(f"max_length {max_length} exceeds max_seq_len={self.max_seq_len}")
+
+        weight = self.input_embed.weight
+        cache_device = torch.device(device) if device is not None else weight.device
+        cache_dtype = dtype if dtype is not None else weight.dtype
+        head_dim = self.embed_dim // self.n_heads
+        return [
+            (
+                torch.empty(batch_size, self.n_kv_heads, max_length, head_dim, device=cache_device, dtype=cache_dtype),
+                torch.empty(batch_size, self.n_kv_heads, max_length, head_dim, device=cache_device, dtype=cache_dtype),
+            )
+            for _ in range(self.n_layers)
+        ]
 
     def num_parameters(self, trainable_only: bool = False) -> int:
         return count_parameters(self, trainable_only=trainable_only)

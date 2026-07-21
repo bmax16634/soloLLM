@@ -130,7 +130,7 @@ def load_spec(
             "config": str(spec.config),
             "parameter_count": parameter_count(model),
             "context_length": context_length,
-            "generation_path": "manual_no_kv_cache",
+            "generation_path": "manual_preallocated_kv_cache",
         }
         return model, tokenizer, metadata
 
@@ -176,6 +176,48 @@ def generate_local_no_cache(
         logits = outputs.logits if hasattr(outputs, "logits") else outputs
         next_token = torch.argmax(logits[:, -1, :], dim=-1, keepdim=True)
         generated = torch.cat([generated, next_token], dim=1)
+    return max_new_tokens
+
+
+@torch.no_grad()
+def generate_local_kv_cache(
+    model: torch.nn.Module,
+    tokenizer: Any,
+    prompt: str,
+    *,
+    device: torch.device,
+    context_length: int,
+    max_new_tokens: int,
+) -> int:
+    generated = tokenizer(prompt, return_tensors="pt").input_ids.to(device)
+    if generated.size(1) + max_new_tokens > context_length:
+        raise ValueError(
+            "cached local generation does not yet support sliding-window cache eviction: "
+            f"prompt={generated.size(1)} max_new_tokens={max_new_tokens} context={context_length}"
+        )
+
+    cache_length = generated.size(1) + max_new_tokens
+    past_key_values = model.allocate_kv_cache(
+        batch_size=generated.size(0),
+        max_length=cache_length,
+        device=device,
+        dtype=next(model.parameters()).dtype,
+    )
+    cache_position = 0
+    logits, past_key_values = model.forward_with_cache(
+        generated,
+        past_key_values=past_key_values,
+        cache_position=cache_position,
+    )
+    cache_position += generated.size(1)
+    for _ in range(max_new_tokens):
+        next_token = torch.argmax(logits[:, -1, :], dim=-1, keepdim=True)
+        logits, past_key_values = model.forward_with_cache(
+            next_token,
+            past_key_values=past_key_values,
+            cache_position=cache_position,
+        )
+        cache_position += 1
     return max_new_tokens
 
 
@@ -227,8 +269,8 @@ def benchmark_spec(
     context_length = int(metadata.get("context_length") or 1024)
     warmup_prompt = PROMPTS[0]
     if warmup_new_tokens > 0:
-        if metadata["generation_path"] == "manual_no_kv_cache":
-            generate_local_no_cache(
+        if metadata["generation_path"] == "manual_preallocated_kv_cache":
+            generate_local_kv_cache(
                 model,
                 tokenizer,
                 warmup_prompt,
@@ -246,8 +288,8 @@ def benchmark_spec(
     total_new_tokens = 0
     start = time.perf_counter()
     for prompt in PROMPTS:
-        if metadata["generation_path"] == "manual_no_kv_cache":
-            total_new_tokens += generate_local_no_cache(
+        if metadata["generation_path"] == "manual_preallocated_kv_cache":
+            total_new_tokens += generate_local_kv_cache(
                 model,
                 tokenizer,
                 prompt,
@@ -289,17 +331,25 @@ def fmt_params(value: int | None) -> str:
     return f"{value / 1_000_000:.2f}M"
 
 
+def display_path(path: str) -> str:
+    resolved = Path(path)
+    try:
+        return str(resolved.relative_to(ROOT))
+    except ValueError:
+        return str(resolved)
+
+
 def write_markdown(path: Path, payload: dict[str, Any]) -> None:
     lines = [
         "# V5 Inference Benchmark",
         "",
-        "Date: July 20, 2026",
+        "Date: July 21, 2026",
         "",
         "## Method",
         "",
         "Batch size `1`, greedy generation, three fixed prompts, and `80` measured",
-        "new tokens per prompt by default. SoloLLM checkpoints use the current",
-        "manual generation loop without KV cache. Hugging Face baselines use",
+        "new tokens per prompt by default. SoloLLM checkpoints use the local",
+        "manual generation loop with KV cache. Hugging Face baselines use",
         "`transformers.generate(..., use_cache=True)`. This measures practical",
         "local usability of the current implementations, not pure architecture",
         "throughput under identical kernels.",
@@ -331,17 +381,17 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
             "",
             "## Read",
             "",
-            "- SoloLLM numbers reflect the current no-KV-cache generation path and are",
-            "  expected to understate what the architecture could do with a cached",
-            "  inference implementation.",
+            "- SoloLLM numbers reflect the current local preallocated KV-cache generation path.",
+            "- The SoloLLM path is correctness-oriented and still uses a manual Python",
+            "  token loop, so it is not directly equivalent to optimized HF generation kernels.",
             "- Hugging Face model numbers reflect the optimized local path available",
             "  through `transformers.generate`.",
             "- Use this board for practical local planning: model size, memory headroom,",
-            "  and whether implementing a SoloLLM KV cache should be a v5 priority.",
+            "  and whether optimizing SoloLLM generation should be a v5 priority.",
             "- Quantized benchmarking is not included yet because local bitsandbytes",
             "  CUDA backend loading currently fails with missing `libnvJitLink.so.13`.",
             "",
-            f"Raw JSON: `{Path(payload['output_json']).relative_to(ROOT)}`",
+            f"Raw JSON: `{display_path(payload['output_json'])}`",
         ]
     )
     path.parent.mkdir(parents=True, exist_ok=True)

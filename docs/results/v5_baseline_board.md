@@ -1,6 +1,6 @@
 # V5 Baseline Board
 
-Date: July 20, 2026
+Date: July 21, 2026
 
 ## Status
 
@@ -59,26 +59,27 @@ continuity, but it is tokenizer-dependent.
 - Pythia 410M and TinyLlama 1.1B confirm the expected scaling curve:
   substantially larger modern baselines are far ahead on BPB and
   continuation accuracy.
-- The board is complete enough to choose v5 direction. The remaining
-  engineering gap is SoloLLM KV-cache inference; quantized benchmarking
-  needs the local bitsandbytes CUDA issue fixed first.
+- The board is complete enough to choose v5 direction. SoloLLM now has
+  cached inference, but the manual Python generation loop is still not
+  kernel-optimized like Hugging Face `generate`.
+- Quantized benchmarking needs the local bitsandbytes CUDA issue fixed first.
 
 ## Local Inference
 
 Batch size `1`, greedy generation, FP16, three fixed prompts. SoloLLM
-uses the current manual generation path without KV cache; Hugging Face
+uses the local preallocated KV-cache generation path; Hugging Face
 baselines use `transformers.generate` with cache enabled.
 
 | Model | Params | Generation path | Tok/s | Peak VRAM |
 | --- | ---: | --- | ---: | ---: |
-| SoloLLM v4.2 150M | 151.87M | manual_no_kv_cache | 122.21 | 0.34GB |
-| SoloLLM v4.2 123M | 123.55M | manual_no_kv_cache | 162.12 | 0.28GB |
-| GPT-2 small | 124.44M | transformers_generate_use_cache | 231.20 | 0.27GB |
-| Pythia 160M | 162.32M | transformers_generate_use_cache | 211.71 | 0.34GB |
-| Pythia 410M | 405.33M | transformers_generate_use_cache | 105.00 | 0.83GB |
-| SmolLM2 135M | 134.52M | transformers_generate_use_cache | 62.20 | 0.28GB |
-| SmolLM2 360M | 361.82M | transformers_generate_use_cache | 55.51 | 0.75GB |
-| TinyLlama 1.1B | 1100.05M | transformers_generate_use_cache | 80.18 | 2.21GB |
+| SoloLLM v4.2 150M | 151.87M | manual_preallocated_kv_cache | 99.44 | 0.32GB |
+| SoloLLM v4.2 123M | 123.55M | manual_preallocated_kv_cache | 142.01 | 0.26GB |
+| GPT-2 small | 124.44M | transformers_generate_use_cache | 224.94 | 0.27GB |
+| Pythia 160M | 162.32M | transformers_generate_use_cache | 210.66 | 0.34GB |
+| Pythia 410M | 405.33M | transformers_generate_use_cache | 112.19 | 0.83GB |
+| SmolLM2 135M | 134.52M | transformers_generate_use_cache | 62.74 | 0.28GB |
+| SmolLM2 360M | 361.82M | transformers_generate_use_cache | 56.05 | 0.75GB |
+| TinyLlama 1.1B | 1100.05M | transformers_generate_use_cache | 83.32 | 2.21GB |
 
 Inference report: `docs/results/v5_inference_benchmark.md`
 
@@ -91,7 +92,8 @@ Inference report: `docs/results/v5_inference_benchmark.md`
 | Inference tokens/sec | v0 complete | Covered for the selected practical baseline set. |
 | Peak inference VRAM | v0 complete | Covered for the selected practical baseline set. |
 | Quantized quality/speed | blocked | `bitsandbytes` fails to load CUDA backend locally: missing `libnvJitLink.so.13`. |
-| SoloLLM KV-cache inference | pending | Requires implementation work; current SoloLLM speed uses manual no-cache generation. |
+| SoloLLM KV-cache inference | v0 complete | Correctness-tested preallocated KV cache is used by the local inference benchmark. |
+| Optimized SoloLLM generation | pending | Current cached path still uses a manual Python token loop. |
 
 ## Source Artifacts
 

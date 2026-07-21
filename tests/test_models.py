@@ -53,6 +53,83 @@ def test_v2_forward_shape():
     assert logits.shape == (2, config["seq_length"], config["vocab_size"])
 
 
+def test_v2_cached_forward_matches_full_forward():
+    config = load_tiny_config()
+    model = SoloGPT_v2(config).eval()
+    input_ids = torch.randint(0, config["vocab_size"], (2, 8))
+
+    with torch.no_grad():
+        full_logits = model(input_ids)
+        past_key_values = None
+        cached_logits = []
+        for position in range(input_ids.size(1)):
+            logits, past_key_values = model.forward_with_cache(
+                input_ids[:, position : position + 1],
+                past_key_values=past_key_values,
+            )
+            cached_logits.append(logits)
+
+    assert torch.allclose(torch.cat(cached_logits, dim=1), full_logits, atol=1e-5, rtol=1e-5)
+
+
+def test_v2_cached_forward_matches_full_forward_with_gqa():
+    config = load_gqa_tiny_config()
+    model = SoloGPT_v2(config).eval()
+    input_ids = torch.randint(0, config["vocab_size"], (2, 8))
+
+    with torch.no_grad():
+        full_logits = model(input_ids)
+        past_key_values = None
+        cached_logits = []
+        for position in range(input_ids.size(1)):
+            logits, past_key_values = model.forward_with_cache(
+                input_ids[:, position : position + 1],
+                past_key_values=past_key_values,
+            )
+            cached_logits.append(logits)
+
+    assert torch.allclose(torch.cat(cached_logits, dim=1), full_logits, atol=1e-5, rtol=1e-5)
+
+
+def test_v2_preallocated_cached_forward_matches_full_forward():
+    config = load_tiny_config()
+    model = SoloGPT_v2(config).eval()
+    input_ids = torch.randint(0, config["vocab_size"], (2, 8))
+
+    with torch.no_grad():
+        full_logits = model(input_ids)
+        past_key_values = model.allocate_kv_cache(
+            batch_size=input_ids.size(0),
+            max_length=input_ids.size(1),
+            device=input_ids.device,
+            dtype=model.input_embed.weight.dtype,
+        )
+        cached_logits = []
+        for position in range(input_ids.size(1)):
+            logits, past_key_values = model.forward_with_cache(
+                input_ids[:, position : position + 1],
+                past_key_values=past_key_values,
+                cache_position=position,
+            )
+            cached_logits.append(logits)
+
+    assert torch.allclose(torch.cat(cached_logits, dim=1), full_logits, atol=1e-5, rtol=1e-5)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA is required for FP16 cache smoke test")
+def test_v2_cached_forward_supports_cuda_fp16():
+    config = load_tiny_config()
+    model = SoloGPT_v2(config).cuda().half().eval()
+    input_ids = torch.randint(0, config["vocab_size"], (1, 8), device="cuda")
+
+    with torch.no_grad():
+        logits, past_key_values = model.forward_with_cache(input_ids[:, :4])
+        logits, past_key_values = model.forward_with_cache(input_ids[:, 4:5], past_key_values=past_key_values)
+
+    assert logits.dtype == torch.float16
+    assert len(past_key_values) == config["n_layer"]
+
+
 def test_v2_rejects_too_long_sequence():
     config = load_tiny_config()
     model = SoloGPT_v2(config)
