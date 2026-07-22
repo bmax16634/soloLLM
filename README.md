@@ -4,6 +4,21 @@ SoloLLM is a from-scratch GPT-style language model project built in PyTorch. It 
 
 The project is organized as a portfolio case study: `sologpt_v1` is the published baseline, `sologpt_v2` is the infrastructure/architecture rebuild, `sologpt_v3` is the public GPT-2 comparison with a curated 10B-token dataset, and `v4-research` records post-v3 ablations against modern small-LM gaps.
 
+## Current Result
+
+SoloLLM v4.2 is the strongest quantitative checkpoint so far. The 151.9M
+parameter v4.2 model was trained from scratch on 9.8B tokens using one RTX 3090
+and beats GPT-2 small across the fixed project evaluation suite: held-out PPL,
+WikiText-2, LAMBADA, LAMBADA continuation accuracy, normalized multiple-choice
+average, and fixed-prompt repetition/diversity diagnostics.
+
+The caveat is explicit: v4.2 150M is larger than GPT-2 small. The v4.2 123M
+ablation is slightly smaller than GPT-2 small and wins all fixed normalized
+multiple-choice checks, but it does not beat GPT-2 across every metric.
+
+Resume-ready wording is in [docs/RESUME_BULLETS.md](docs/RESUME_BULLETS.md).
+The v4 closeout is in [docs/results/v4_closeout.md](docs/results/v4_closeout.md).
+
 ## Highlights
 
 - Custom decoder-only transformer implementation in PyTorch.
