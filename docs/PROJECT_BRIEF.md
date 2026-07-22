@@ -243,8 +243,6 @@ Resume version:
 
 > Built from-scratch GPT-style language models in PyTorch on a single RTX 3090, curated a 10B-token training dataset, and trained GPT-2-class base LMs with reproducible checkpoints, full evals, and documented comparisons against GPT-2 small.
 
-Updated v4.2 resume wording lives in `docs/RESUME_BULLETS.md`.
-
 Case-study version:
 
 > V1 proved the pipeline could work. V2 turned the project into an ML systems case study. V3 turned it into a full empirical comparison: data curation, scaling decisions, fixed GPT-2 evals, a 150M public model that wins overall, and a smaller 123M ablation that shows exactly where the strict smaller-model claim still fails. V4 research added controlled data-mix and training-recipe experiments, ending with a v4.2 150M checkpoint that beats GPT-2 small across the fixed quantitative suite and a 123M checkpoint that is smaller than GPT-2 and wins the MC suite but not every metric.

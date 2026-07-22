@@ -16,7 +16,6 @@ The caveat is explicit: v4.2 150M is larger than GPT-2 small. The v4.2 123M
 ablation is slightly smaller than GPT-2 small and wins all fixed normalized
 multiple-choice checks, but it does not beat GPT-2 across every metric.
 
-Resume-ready wording is in [docs/RESUME_BULLETS.md](docs/RESUME_BULLETS.md).
 The v4 closeout is in [docs/results/v4_closeout.md](docs/results/v4_closeout.md).
 
 ## Highlights
@@ -52,7 +51,6 @@ The v4 closeout is in [docs/results/v4_closeout.md](docs/results/v4_closeout.md)
 | `docs/V3_DATA_PLAN.md` | V3 data mixture, final 10B dataset stats, and training split. |
 | `docs/V3_EVAL_SUITE.md` | Executable v3 eval suite runner and usage. |
 | `docs/V3_ARTIFACT_MANIFEST.md` | Canonical local artifacts retained after v3 closeout and checkpoint cleanup. |
-| `docs/RESUME_BULLETS.md` | Resume-ready SoloLLM v4.2 bullets and honest claim framing. |
 | `docs/results/phase1_50m_sanity.md` | Completed 50M sanity results and Phase 1 decision. |
 | `docs/results/phase2_300m_pilot.md` | Completed 300M pilot results and Phase 2 decision. |
 | `docs/results/final_3b_modern_small.md` | Final v2 3B-token training and Phase 4 evaluation results. |
