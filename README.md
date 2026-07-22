@@ -37,6 +37,7 @@ The project is organized as a portfolio case study: `sologpt_v1` is the publishe
 | `docs/V3_DATA_PLAN.md` | V3 data mixture, final 10B dataset stats, and training split. |
 | `docs/V3_EVAL_SUITE.md` | Executable v3 eval suite runner and usage. |
 | `docs/V3_ARTIFACT_MANIFEST.md` | Canonical local artifacts retained after v3 closeout and checkpoint cleanup. |
+| `docs/RESUME_BULLETS.md` | Resume-ready SoloLLM v4.2 bullets and honest claim framing. |
 | `docs/results/phase1_50m_sanity.md` | Completed 50M sanity results and Phase 1 decision. |
 | `docs/results/phase2_300m_pilot.md` | Completed 300M pilot results and Phase 2 decision. |
 | `docs/results/final_3b_modern_small.md` | Final v2 3B-token training and Phase 4 evaluation results. |

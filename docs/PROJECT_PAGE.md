@@ -112,6 +112,7 @@ The final honest claim:
 - Final report: `docs/results/v3_final_gpt2_comparison.md`
 - V4.2 research report: `docs/results/v4_2_dropout0_v4_1_blend_150m_10b.md`
 - V4 closeout report: `docs/results/v4_closeout.md`
+- Resume bullets: `docs/RESUME_BULLETS.md`
 - Artifact manifest: `docs/V3_ARTIFACT_MANIFEST.md`
 - V3 plan and closeout: `docs/V3_PLAN.md`
 - V3 dataset plan: `docs/V3_DATA_PLAN.md`
