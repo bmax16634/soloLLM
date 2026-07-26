@@ -17,6 +17,12 @@ __pycache__/
 *.py[cod]
 .ipynb_checkpoints/
 
+# Keep old/internal markdown docs local unless explicitly promoted.
+README.md
+docs/**
+!docs/
+!docs/EVALUATION_SUITE.md
+
 # Training logs
 *.log
 *.jsonl
