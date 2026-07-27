@@ -1,0 +1,155 @@
+{
+  "gpt2_small": {
+    "name": "GPT-2 small",
+    "family": "GPT-2",
+    "type": "external baseline",
+    "params": 124439808,
+    "train_tokens_display": "public",
+    "context": 1024,
+    "notes": "Historical GPT-2-class reference baseline."
+  },
+  "distilgpt2": {
+    "name": "DistilGPT2",
+    "family": "GPT-2",
+    "type": "external baseline",
+    "params": 81912576,
+    "train_tokens_display": "public",
+    "context": 1024,
+    "notes": "Compressed GPT-2-family reference."
+  },
+  "pythia_70m": {
+    "name": "Pythia 70M",
+    "family": "Pythia",
+    "type": "external baseline",
+    "params": 70426624,
+    "train_tokens_display": "public",
+    "context": null,
+    "notes": "Controlled open baseline below SoloLLM scale."
+  },
+  "pythia_160m": {
+    "name": "Pythia 160M",
+    "family": "Pythia",
+    "type": "external baseline",
+    "params": 162322944,
+    "train_tokens_display": "public",
+    "context": null,
+    "notes": "Controlled open baseline near SoloLLM 150M scale."
+  },
+  "pythia_410m": {
+    "name": "Pythia 410M",
+    "family": "Pythia",
+    "type": "external baseline",
+    "params": 405334016,
+    "train_tokens_display": "public",
+    "context": null,
+    "notes": "Larger controlled baseline; useful direction check, not same-scale."
+  },
+  "smollm_135m": {
+    "name": "SmolLM 135M",
+    "family": "SmolLM",
+    "type": "external baseline",
+    "params": 134515008,
+    "train_tokens_display": "public",
+    "context": null,
+    "notes": "Modern compact baseline."
+  },
+  "smollm2_135m": {
+    "name": "SmolLM2 135M",
+    "family": "SmolLM2",
+    "type": "external baseline",
+    "params": 134515008,
+    "train_tokens_display": "public",
+    "context": null,
+    "notes": "Primary modern same-scale target."
+  },
+  "smollm2_360m": {
+    "name": "SmolLM2 360M",
+    "family": "SmolLM2",
+    "type": "external baseline",
+    "params": 361821184,
+    "train_tokens_display": "public",
+    "context": null,
+    "notes": "Modern compact upper-bound target."
+  },
+  "tinyllama_1_1b": {
+    "name": "TinyLlama 1.1B",
+    "family": "TinyLlama",
+    "type": "external baseline",
+    "params": 1100052480,
+    "train_tokens_display": "public",
+    "context": null,
+    "notes": "Stretch local baseline; quality target, not same-size."
+  },
+  "solollm_v2_5p6b": {
+    "name": "SoloLLM v2 5.60B",
+    "family": "SoloLLM",
+    "type": "base model",
+    "params": 91654400,
+    "train_tokens_display": "5.60B",
+    "context": 512,
+    "notes": "v2 diagnostic baseline."
+  },
+  "solollm_v3_123m": {
+    "name": "SoloLLM v3 123M",
+    "family": "SoloLLM",
+    "type": "base model",
+    "params": 123551232,
+    "train_tokens_display": "9.80B",
+    "context": 1024,
+    "notes": "Smaller-than-GPT-2 v3 ablation."
+  },
+  "solollm_v3_150m": {
+    "name": "SoloLLM v3 150M",
+    "family": "SoloLLM",
+    "type": "base model",
+    "params": 151868928,
+    "train_tokens_display": "10.00B",
+    "context": 1024,
+    "notes": "Public final v3 checkpoint."
+  },
+  "solollm_v4_reasoning_150m": {
+    "name": "SoloLLM v4 reasoning 150M",
+    "family": "SoloLLM",
+    "type": "base model",
+    "params": 151868928,
+    "train_tokens_display": "9.80B",
+    "context": 1024,
+    "notes": "Reasoning-heavy v4 ablation; MC/repetition improved, broad PPL regressed."
+  },
+  "solollm_v4_2_123m": {
+    "name": "SoloLLM v4.2 123M",
+    "family": "SoloLLM",
+    "type": "base model",
+    "params": 123551232,
+    "train_tokens_display": "9.80B",
+    "context": 1024,
+    "notes": "Smaller-than-GPT-2 ablation; wins fixed MC suite, not every metric."
+  },
+  "solollm_v4_2_150m": {
+    "name": "SoloLLM v4.2 150M",
+    "family": "SoloLLM",
+    "type": "base model",
+    "params": 151868928,
+    "train_tokens_display": "9.80B",
+    "context": 1024,
+    "notes": "Current best SoloLLM quantitative checkpoint."
+  },
+  "solollm_v4_2_proxy_57m_300m": {
+    "name": "SoloLLM v4.2 57M/300M proxy",
+    "family": "SoloLLM",
+    "type": "proxy base model",
+    "params": 57117696,
+    "train_tokens_display": "300M",
+    "context": 1024,
+    "notes": "v4.2 proxy used as the v5 gate comparison."
+  },
+  "solollm_v5_proxy_57m_1b": {
+    "name": "SoloLLM v5 smol-quality 57M/1B proxy",
+    "family": "SoloLLM",
+    "type": "proxy base model",
+    "params": 57117696,
+    "train_tokens_display": "1.00B",
+    "context": 1024,
+    "notes": "First v5 proxy aimed at SmolLM2-style quality."
+  }
+}

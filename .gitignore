@@ -22,6 +22,7 @@ README.md
 docs/**
 !docs/
 !docs/EVALUATION_SUITE.md
+!docs/RESULTS.md
 
 # Training logs
 *.log
@@ -29,3 +30,6 @@ docs/**
 run_meta_*.json
 training_summary_*.json
 loss_curve_*.json
+
+# Public leaderboard source data
+!leaderboard/eval_runs.jsonl
