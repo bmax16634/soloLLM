@@ -1,0 +1,67 @@
+# Hugging Face publishing manifest for SoloLLM.
+# General Ariya convention: [[hugging-face-publishing-workflow]].
+# Development happens in /home/bmx/_projects/soloLLM; these repos are publishing targets.
+
+version: 1
+project: soloLLM
+source_root: /home/bmx/_projects/soloLLM
+local_clone_root: /home/bmx/_hf_repos
+export_root: outputs/huggingface
+fileserver_mirror_root: /mnt/raid/hf_repos
+
+sync_excludes:
+  - .git/
+  - .cache/
+  - __pycache__/
+  - '*.pyc'
+
+repos:
+  sologpt-v3-150m-base:
+    kind: model
+    owner: bmax16634
+    hf_repo: bmax16634/sologpt-v3-150m-base
+    export_dir: outputs/huggingface/sologpt-v3-150m-base
+    clone_dir: /home/bmx/_hf_repos/models/bmax16634/sologpt-v3-150m-base
+    fileserver_mirror: /mnt/raid/hf_repos/models/bmax16634/sologpt-v3-150m-base.git
+    lfs: true
+    publish_policy: approval_required
+
+  sologpt-v3-123m-base:
+    kind: model
+    owner: bmax16634
+    hf_repo: bmax16634/sologpt-v3-123m-base
+    export_dir: outputs/huggingface/sologpt-v3-123m-base
+    clone_dir: /home/bmx/_hf_repos/models/bmax16634/sologpt-v3-123m-base
+    fileserver_mirror: /mnt/raid/hf_repos/models/bmax16634/sologpt-v3-123m-base.git
+    lfs: true
+    publish_policy: approval_required
+
+  sologpt-v3-150m-demo:
+    kind: space
+    owner: bmax16634
+    hf_repo: bmax16634/sologpt-v3-150m-demo
+    export_dir: outputs/huggingface/sologpt-v3-150m-demo
+    clone_dir: /home/bmx/_hf_repos/spaces/bmax16634/sologpt-v3-150m-demo
+    fileserver_mirror: /mnt/raid/hf_repos/spaces/bmax16634/sologpt-v3-150m-demo.git
+    lfs: false
+    publish_policy: approval_required
+
+  sologpt-base-v1:
+    kind: model
+    owner: bmax16634
+    hf_repo: bmax16634/sologpt-base-v1
+    export_dir: outputs/huggingface/sologpt-base-v1-legacy
+    clone_dir: /home/bmx/_hf_repos/legacy/bmax16634/sologpt-base-v1
+    fileserver_mirror: /mnt/raid/hf_repos/legacy/bmax16634/sologpt-base-v1.git
+    lfs: true
+    publish_policy: approval_required
+
+  sologpt-base-v1-demo:
+    kind: space
+    owner: bmax16634
+    hf_repo: bmax16634/sologpt-base-v1-demo
+    export_dir: outputs/huggingface/sologpt-base-v1-demo-legacy
+    clone_dir: /home/bmx/_hf_repos/legacy/bmax16634/sologpt-base-v1-demo
+    fileserver_mirror: /mnt/raid/hf_repos/legacy/bmax16634/sologpt-base-v1-demo.git
+    lfs: false
+    publish_policy: approval_required
