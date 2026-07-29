@@ -33,3 +33,6 @@ loss_curve_*.json
 
 # Public leaderboard source data
 !leaderboard/eval_runs.jsonl
+
+# Ariya file explorer ignores
+/hf/
