@@ -92,10 +92,10 @@ def build() -> str:
         "",
         "## Current Read",
         "",
-        "- SoloLLM v4.2 150M is the strongest completed SoloLLM checkpoint.",
+        "- SoloLLM-1.0-152M-Base is the strongest completed SoloLLM checkpoint.",
         "- It beats GPT-2 small across the fixed project suite, but it is larger than GPT-2 small.",
-        "- SoloLLM v4.2 123M is slightly smaller than GPT-2 small and wins the fixed normalized multiple-choice suite, but not every metric.",
-        "- V5 moves the project toward modern small-model baselines such as SmolLM2 rather than repeatedly chasing GPT-2.",
+        "- SoloLLM-1.0-123M-Base is slightly smaller than GPT-2 small and wins the fixed normalized multiple-choice suite, but not every metric.",
+        "- Research r5 moves the project toward modern small-model baselines such as SmolLM2 rather than repeatedly chasing GPT-2.",
         "",
     ]
 
@@ -236,7 +236,7 @@ def build() -> str:
         "solollm_v4_2_proxy_57m_300m",
         "solollm_v5_proxy_57m_1b",
     ]
-    out.extend(["## V5 Proxy Gate", ""])
+    out.extend(["## R5 Proxy Gate", ""])
     out.extend(table(
         ["Proxy", "Params", "Tokens", "Val PPL", "Train loss", "WikiText BPB", "LAMBADA BPB", "LAMBADA tok", "LAMBADA word", "MC avg norm"],
         [[
@@ -260,8 +260,8 @@ def build() -> str:
         "A leaderboard win means the model is better across the fixed suite shown here.",
         "It does not prove the model is better at every possible language task.",
         "",
-        "The strongest current SoloLLM claim is that v4.2 150M beats GPT-2 small",
-        "across the fixed project suite, while the smaller v4.2 123M checkpoint",
+        "The strongest current SoloLLM claim is that SoloLLM-1.0-152M-Base beats GPT-2 small",
+        "across the fixed project suite, while the smaller SoloLLM-1.0-123M-Base checkpoint",
         "wins the normalized multiple-choice suite but not every metric.",
         "",
     ])

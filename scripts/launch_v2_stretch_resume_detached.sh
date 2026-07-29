@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PYTHONPATH="${ROOT}/src:${ROOT}:${PYTHONPATH:-}"
 cd "$ROOT"
 
 RUN_DIR="${RUN_DIR:-outputs/sologpt_v2/stretch_5p85b_modern_small_from3b}"
@@ -19,9 +20,9 @@ if [[ ! -f "$SOURCE_CKPT" ]]; then
   exit 2
 fi
 
-if pgrep -af "python -m sologpt_v2.pretrain" | grep -F "$RUN_DIR" | grep -v grep >/dev/null; then
+if pgrep -af "python -m solollm.train" | grep -F "$RUN_DIR" | grep -v grep >/dev/null; then
   echo "A stretch training run already appears to be running for $RUN_DIR."
-  pgrep -af "python -m sologpt_v2.pretrain" | grep -F "$RUN_DIR" | grep -v grep || true
+  pgrep -af "python -m solollm.train" | grep -F "$RUN_DIR" | grep -v grep || true
   exit 0
 fi
 

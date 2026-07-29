@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-ROOT="${ROOT:-/home/bmx/_projects/ariya/userdata/projects/soloLLM}"
+ROOT="${ROOT:-/home/bmx/_projects/soloLLM}"
+export PYTHONPATH="${ROOT}/src:${ROOT}:${PYTHONPATH:-}"
 RUN_NAME="${RUN_NAME:-v3_full_2b_plus_150m_1024}"
 OUT_DIR="${OUT_DIR:-${ROOT}/outputs/sologpt_v3/${RUN_NAME}}"
 LOG_PATH="${LOG_PATH:-${ROOT}/outputs/sologpt_v3/${RUN_NAME}.log}"
-CONFIG_PATH="${CONFIG_PATH:-${ROOT}/sologpt_v3/config_plus_150m_1024.json}"
+CONFIG_PATH="${CONFIG_PATH:-${ROOT}/configs/solollm-0.3-152m-base.json}"
 RESUME_PATH="${RESUME_PATH:-${ROOT}/outputs/sologpt_v3/v3_full_1b_plus_150m_1024/checkpoints/latest.pt}"
 
 mkdir -p "$(dirname "$LOG_PATH")"
@@ -25,7 +26,7 @@ echo "target_tokens=2000000000"
 echo "continuation_learning_rate=0.0001"
 echo "pid=$$"
 
-python -m sologpt_v2.pretrain \
+python -m solollm.train \
   --config "$CONFIG_PATH" \
   --output-dir "$OUT_DIR" \
   --resume "$RESUME_PATH" \

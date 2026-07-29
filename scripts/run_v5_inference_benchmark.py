@@ -15,11 +15,13 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, GPT2Tokenizer
 
 ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+SRC_ROOT = ROOT / "src"
+for path in (SRC_ROOT, ROOT):
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
 
 from eval.eval import load_checkpoint_state, load_json, resolve_device
-from sologpt_v2.model import SoloGPT_v2
+from solollm.model import SoloLLM
 
 
 OUT_DIR = ROOT / "outputs" / "eval_suites" / "v5_inference_benchmark"
@@ -45,16 +47,16 @@ class BenchSpec:
 
 DEFAULT_SPECS = [
     BenchSpec(
-        label="SoloLLM v4.2 150M",
+        label="SoloLLM-1.0-152M-Base",
         kind="local_v2",
         checkpoint=ROOT / "outputs/sologpt_v4/v4_2_dropout0_v4_1_blend_10b_150m_1024/final_model.pt",
-        config=ROOT / "sologpt_v4/config_v4_2_dropout0_v4_1_blend_150m_1024.json",
+        config=ROOT / "configs/solollm-1.0-152m-base.json",
     ),
     BenchSpec(
-        label="SoloLLM v4.2 123M",
+        label="SoloLLM-1.0-123M-Base",
         kind="local_v2",
         checkpoint=ROOT / "outputs/sologpt_v4/v4_2_dropout0_v4_1_blend_10b_123m_1024/final_model.pt",
-        config=ROOT / "sologpt_v4/config_v4_2_dropout0_v4_1_blend_123m_1024.json",
+        config=ROOT / "configs/solollm-1.0-123m-base.json",
     ),
     BenchSpec(label="GPT-2 small", kind="hf", hf_id="gpt2"),
     BenchSpec(label="Pythia 160M", kind="hf", hf_id="EleutherAI/pythia-160m-deduped"),
@@ -118,7 +120,7 @@ def load_spec(
         if spec.checkpoint is None or spec.config is None:
             raise ValueError(f"{spec.label} missing checkpoint/config")
         config = load_json(spec.config)
-        model = SoloGPT_v2(config)
+        model = SoloLLM(config)
         state = load_checkpoint_state(spec.checkpoint, torch.device("cpu"))
         model.load_state_dict(state)
         model = model.to(device=device, dtype=dtype).eval()
@@ -341,7 +343,7 @@ def display_path(path: str) -> str:
 
 def write_markdown(path: Path, payload: dict[str, Any]) -> None:
     lines = [
-        "# V5 Inference Benchmark",
+        "# R5 Inference Benchmark",
         "",
         "Date: July 21, 2026",
         "",

@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-ROOT="${ROOT:-/home/bmx/_projects/ariya/userdata/projects/soloLLM}"
+ROOT="${ROOT:-/home/bmx/_projects/soloLLM}"
+export PYTHONPATH="${ROOT}/src:${ROOT}:${PYTHONPATH:-}"
 TARGET_TOKENS="${TARGET_TOKENS:-300000000}"
 MAX_EVAL_TOKENS="${MAX_EVAL_TOKENS:-2097152}"
 EVAL_EVERY_TOKENS="${EVAL_EVERY_TOKENS:-50000000}"
 TOKENS_PER_CHECKPOINT="${TOKENS_PER_CHECKPOINT:-100000000}"
 DEVICE="${DEVICE:-cuda}"
 
-V3_CONFIG="${V3_CONFIG:-${ROOT}/sologpt_v3/config_proxy_v3_style_60m_1024.json}"
-SMOLLM2_CONFIG="${SMOLLM2_CONFIG:-${ROOT}/sologpt_v3/config_proxy_smollm2_style_60m_1024.json}"
+V3_CONFIG="${V3_CONFIG:-${ROOT}/configs/solollm-0.4-57m-v3-style-baseproxy.json}"
+SMOLLM2_CONFIG="${SMOLLM2_CONFIG:-${ROOT}/configs/solollm-0.4-57m-smollm2-style-baseproxy.json}"
 V3_OUT_DIR="${V3_OUT_DIR:-${ROOT}/outputs/sologpt_v4/phase1_proxy_v3_style_60m_300m}"
 SMOLLM2_OUT_DIR="${SMOLLM2_OUT_DIR:-${ROOT}/outputs/sologpt_v4/phase1_proxy_smollm2_style_60m_300m}"
 RUN_DIR="${RUN_DIR:-${ROOT}/outputs/sologpt_v4/phase1_proxy_architecture_300m}"
@@ -199,7 +200,7 @@ run_proxy() {
   echo "config=${config}"
   echo "out_dir=${out_dir}"
 
-  python -m sologpt_v2.pretrain \
+  python -m solollm.train \
     --config "$config" \
     --output-dir "$out_dir" \
     --max-tokens "$TARGET_TOKENS" \

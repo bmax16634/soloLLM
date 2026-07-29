@@ -54,9 +54,9 @@ SOURCES = [
 
 
 DISPLAY = {
-    "v4_2_dropout0_v4_1_blend_10b_150m": "SoloLLM v4.2 150M",
-    "v4_2_dropout0_v4_1_blend_10b_123m": "SoloLLM v4.2 123M",
-    "solollm-v3-150m": "SoloLLM v3 150M",
+    "v4_2_dropout0_v4_1_blend_10b_150m": "SoloLLM-1.0-152M-Base",
+    "v4_2_dropout0_v4_1_blend_10b_123m": "SoloLLM-1.0-123M-Base",
+    "solollm-v3-150m": "SoloLLM research r3 150M",
     "gpt2": "GPT-2 small",
     "distilgpt2": "DistilGPT2",
     "pythia-70m": "Pythia 70M",
@@ -84,7 +84,7 @@ ORDER = [
 ]
 
 NOTES = {
-    "v4_2_dropout0_v4_1_blend_10b_150m": "Current best SoloLLM quantitative checkpoint.",
+    "v4_2_dropout0_v4_1_blend_10b_150m": "Current best SoloLLM-1.0 quantitative checkpoint.",
     "v4_2_dropout0_v4_1_blend_10b_123m": "Smaller-than-GPT-2 ablation; wins fixed MC suite, not every metric.",
     "solollm-v3-150m": "Public final v3 checkpoint.",
     "gpt2": "Historical GPT-2-class reference baseline.",
@@ -177,7 +177,7 @@ def collect() -> dict[str, Any]:
 
 def markdown(data: dict[str, Any]) -> str:
     lines: list[str] = []
-    lines.append("# V5 Baseline Board")
+    lines.append("# R5 Baseline Board")
     lines.append("")
     lines.append("Date: July 21, 2026")
     lines.append("")
@@ -241,8 +241,8 @@ def markdown(data: dict[str, Any]) -> str:
     lines.append("")
     lines.append("## Interpretation")
     lines.append("")
-    lines.append("- SoloLLM v4.2 150M remains the strongest SoloLLM checkpoint.")
-    lines.append("- SoloLLM v4.2 123M is competitive with GPT-2 and Pythia 160M, but")
+    lines.append("- SoloLLM-1.0-152M-Base remains the strongest SoloLLM checkpoint.")
+    lines.append("- SoloLLM-1.0-123M-Base is competitive with GPT-2 and Pythia 160M, but")
     lines.append("  SmolLM2 135M is the main same-scale modern target.")
     lines.append("- The largest same-scale gap is still modern-small-model quality:")
     lines.append("  SmolLM2 135M and especially SmolLM2 360M are well ahead on MC and")

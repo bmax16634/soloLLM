@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-ROOT="${ROOT:-/home/bmx/_projects/ariya/userdata/projects/soloLLM}"
+ROOT="${ROOT:-/home/bmx/_projects/soloLLM}"
+export PYTHONPATH="${ROOT}/src:${ROOT}:${PYTHONPATH:-}"
 RUN_NAME="${RUN_NAME:-v3_fresh_10b_plus_150m_1024_10bdata}"
 OUT_DIR="${OUT_DIR:-${ROOT}/outputs/sologpt_v3/${RUN_NAME}}"
 LOG_PATH="${LOG_PATH:-${ROOT}/outputs/sologpt_v3/${RUN_NAME}.log}"
-CONFIG_PATH="${CONFIG_PATH:-${ROOT}/sologpt_v3/config_plus_150m_1024.json}"
+CONFIG_PATH="${CONFIG_PATH:-${ROOT}/configs/solollm-0.3-152m-base.json}"
 RESUME_PATH="${RESUME_PATH:-${ROOT}/outputs/sologpt_v3/v3_fresh_5b_plus_150m_1024_10bdata/checkpoints/latest.pt}"
 SHARD_DIR="${SHARD_DIR:-/home/bmx/_projects/soloLLM/data/v3_10b_1024/chunks}"
 TRAIN_SHARDS="${TRAIN_SHARDS:-596:1168}"
@@ -33,7 +34,7 @@ echo "target_tokens=$TARGET_TOKENS"
 echo "continuation_learning_rate=$CONTINUATION_LR"
 echo "pid=$$"
 
-python -m sologpt_v2.pretrain \
+python -m solollm.train \
   --config "$CONFIG_PATH" \
   --output-dir "$OUT_DIR" \
   --resume "$RESUME_PATH" \

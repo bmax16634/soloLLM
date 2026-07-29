@@ -2,7 +2,7 @@
   "model_type": "sologpt",
   "variant": "modern_tiny_gqa",
   "architectures": [
-    "SoloGPT_v2"
+    "SoloLLM"
   ],
   "vocab_size": 64,
   "n_embd": 16,

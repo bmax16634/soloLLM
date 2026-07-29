@@ -5,9 +5,9 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MANIFESTS = [
-    (REPO_ROOT / "sologpt_v4" / "data_mix_quality_web_300m.yaml", 300_000_000),
-    (REPO_ROOT / "sologpt_v4" / "data_mix_smollm_reasoning_300m.yaml", 300_000_000),
-    (REPO_ROOT / "sologpt_v4" / "data_mix_smollm_reasoning_10b.yaml", 10_000_000_000),
+    (REPO_ROOT / "data_mixes" / "solollm-0.4-quality-web-300m.yaml", 300_000_000),
+    (REPO_ROOT / "data_mixes" / "solollm-0.4-reasoning-300m.yaml", 300_000_000),
+    (REPO_ROOT / "data_mixes" / "solollm-0.4-reasoning-10b.yaml", 10_000_000_000),
 ]
 
 

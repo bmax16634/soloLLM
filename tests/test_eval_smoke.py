@@ -7,7 +7,7 @@ from pathlib import Path
 
 import torch
 
-from sologpt_v2.model import SoloGPT_v2
+from solollm.model import SoloLLM
 from eval.model_registry import parse_model_spec
 
 
@@ -36,7 +36,7 @@ def test_eval_cli_writes_finite_v2_result(tmp_path):
 
     with open(FIXTURE_CONFIG, "r", encoding="utf-8") as f:
         config = json.load(f)
-    model = SoloGPT_v2(config)
+    model = SoloLLM(config)
     checkpoint_path = tmp_path / "tiny_v2.pt"
     torch.save(model.state_dict(), checkpoint_path)
 
@@ -46,7 +46,7 @@ def test_eval_cli_writes_finite_v2_result(tmp_path):
             sys.executable,
             "eval/eval.py",
             "--model",
-            "v2",
+            "solollm",
             "--checkpoint",
             str(checkpoint_path),
             "--config",
@@ -66,14 +66,14 @@ def test_eval_cli_writes_finite_v2_result(tmp_path):
     with open(output_path, "r", encoding="utf-8") as f:
         result = json.load(f)
 
-    assert result["model"] == "v2"
+    assert result["model"] == "solollm"
     assert result["tokens"] > 0
     assert math.isfinite(result["loss"])
     assert math.isfinite(result["perplexity"])
 
 
 def test_model_spec_parser_supports_hf_labels():
-    assert parse_model_spec("v2", v2_label="candidate") == ("candidate", "v2", None)
+    assert parse_model_spec("solollm", v2_label="candidate") == ("candidate", "solollm", None)
     assert parse_model_spec("gpt2", v2_label="candidate") == ("gpt2", "gpt2", "gpt2")
     assert parse_model_spec("hf:EleutherAI/pythia-160m", v2_label="candidate") == (
         "pythia-160m",

@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-ROOT="${ROOT:-/home/bmx/_projects/ariya/userdata/projects/soloLLM}"
+ROOT="${ROOT:-/home/bmx/_projects/soloLLM}"
+export PYTHONPATH="${ROOT}/src:${ROOT}:${PYTHONPATH:-}"
 RUN_NAME="${RUN_NAME:-v4_smollm_reasoning_10b_plus_150m_1024}"
-MANIFEST="${MANIFEST:-${ROOT}/sologpt_v4/data_mix_smollm_reasoning_10b.yaml}"
+MANIFEST="${MANIFEST:-${ROOT}/data_mixes/solollm-0.4-reasoning-10b.yaml}"
 DATA_DIR="${DATA_DIR:-/home/bmx/_projects/soloLLM/data/v4_smollm_reasoning_10b_1024}"
 DATASET_TARGET_TOKENS="${DATASET_TARGET_TOKENS:-10000000000}"
 BUILD_IF_MISSING="${BUILD_IF_MISSING:-1}"
@@ -11,7 +12,7 @@ OVERWRITE_DATA="${OVERWRITE_DATA:-0}"
 
 TRAIN_OUT_DIR="${TRAIN_OUT_DIR:-${ROOT}/outputs/sologpt_v4/${RUN_NAME}}"
 TRAIN_LOG_PATH="${TRAIN_LOG_PATH:-${ROOT}/outputs/sologpt_v4/${RUN_NAME}.log}"
-CONFIG_PATH="${CONFIG_PATH:-${ROOT}/sologpt_v3/config_plus_150m_1024.json}"
+CONFIG_PATH="${CONFIG_PATH:-${ROOT}/configs/solollm-0.3-152m-base.json}"
 EVAL_EVERY_TOKENS="${EVAL_EVERY_TOKENS:-250000000}"
 TOKENS_PER_CHECKPOINT="${TOKENS_PER_CHECKPOINT:-2000000000}"
 MAX_EVAL_TOKENS="${MAX_EVAL_TOKENS:-4194304}"
@@ -320,7 +321,7 @@ monitor_milestones &
 monitor_pid=$!
 trap 'kill "$monitor_pid" 2>/dev/null || true' EXIT
 
-python -m sologpt_v2.pretrain \
+python -m solollm.train \
   --config "$CONFIG_PATH" \
   --output-dir "$TRAIN_OUT_DIR" \
   --shard-dir "$SHARD_DIR" \

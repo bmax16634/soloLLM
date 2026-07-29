@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-ROOT="${ROOT:-/home/bmx/ariya-data/projects/soloLLM}"
+ROOT="${ROOT:-/home/bmx/_projects/soloLLM}"
+export PYTHONPATH="${ROOT}/src:${ROOT}:${PYTHONPATH:-}"
 RUN_NAME="${RUN_NAME:-v4_2_dropout0_v4_1_blend_10b_150m_1024}"
 DATA_DIR="${DATA_DIR:-${ROOT}/data/v4_2_dropout0_v4_1_blend_10b_1024}"
 
 TRAIN_OUT_DIR="${TRAIN_OUT_DIR:-${ROOT}/outputs/sologpt_v4/${RUN_NAME}}"
 TRAIN_LOG_PATH="${TRAIN_LOG_PATH:-${ROOT}/outputs/sologpt_v4/${RUN_NAME}_resume_8b_to_10b.log}"
-CONFIG_PATH="${CONFIG_PATH:-${ROOT}/sologpt_v4/config_v4_2_dropout0_v4_1_blend_150m_1024.json}"
+CONFIG_PATH="${CONFIG_PATH:-${ROOT}/configs/solollm-1.0-152m-base.json}"
 RESUME_CHECKPOINT="${RESUME_CHECKPOINT:-${TRAIN_OUT_DIR}/checkpoints/latest.pt}"
 SHARD_DIR="${SHARD_DIR:-${DATA_DIR}/chunks}"
 TRAIN_SHARDS="${TRAIN_SHARDS:-954:1168}"
@@ -271,7 +272,7 @@ monitor_milestones &
 monitor_pid=$!
 trap 'kill "$monitor_pid" 2>/dev/null || true' EXIT
 
-python -m sologpt_v2.pretrain \
+python -m solollm.train \
   --config "$CONFIG_PATH" \
   --output-dir "$TRAIN_OUT_DIR" \
   --shard-dir "$SHARD_DIR" \

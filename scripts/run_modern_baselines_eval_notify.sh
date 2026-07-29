@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-ROOT="${ROOT:-/home/bmx/_projects/ariya/userdata/projects/soloLLM}"
+ROOT="${ROOT:-/home/bmx/_projects/soloLLM}"
 RUN_NAME="${RUN_NAME:-modern_baselines_v3_150m}"
 OUT_DIR="${OUT_DIR:-${ROOT}/outputs/eval_suites/${RUN_NAME}}"
 REPORT_DIR="${REPORT_DIR:-${ROOT}/docs/results/${RUN_NAME}}"
@@ -9,7 +9,7 @@ LOG_PATH="${LOG_PATH:-${OUT_DIR}/modern_baselines_eval.log}"
 
 V2_LABEL="${V2_LABEL:-solollm-v3-150m}"
 V2_CHECKPOINT="${V2_CHECKPOINT:-${ROOT}/outputs/sologpt_v3/v3_fresh_10b_plus_150m_1024_10bdata/final_model.pt}"
-V2_CONFIG="${V2_CONFIG:-${ROOT}/sologpt_v3/config_plus_150m_1024.json}"
+V2_CONFIG="${V2_CONFIG:-${ROOT}/configs/solollm-0.3-152m-base.json}"
 CONTEXT_LENGTH="${CONTEXT_LENGTH:-1024}"
 MAX_WIKITEXT_TOKENS="${MAX_WIKITEXT_TOKENS:-0}"
 MAX_LAMBADA_EXAMPLES="${MAX_LAMBADA_EXAMPLES:-0}"
@@ -19,7 +19,7 @@ NOTIFY="${NOTIFY:-1}"
 
 # MobileLLM-125M is a useful comparison but is gated on Hugging Face, so it is
 # intentionally excluded from the default public-baseline run.
-MODELS="${MODELS:-v2 gpt2 distilgpt2 pythia-70m=hf:EleutherAI/pythia-70m-deduped pythia-160m=hf:EleutherAI/pythia-160m-deduped smollm-135m=hf:HuggingFaceTB/SmolLM-135M smollm2-135m=hf:HuggingFaceTB/SmolLM2-135M smollm2-360m=hf:HuggingFaceTB/SmolLM2-360M}"
+MODELS="${MODELS:-solollm gpt2 distilgpt2 pythia-70m=hf:EleutherAI/pythia-70m-deduped pythia-160m=hf:EleutherAI/pythia-160m-deduped smollm-135m=hf:HuggingFaceTB/SmolLM-135M smollm2-135m=hf:HuggingFaceTB/SmolLM2-135M smollm2-360m=hf:HuggingFaceTB/SmolLM2-360M}"
 
 notify() {
   local title="$1"

@@ -10,7 +10,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, GPT2Tokenizer
 
 from eval.eval import load_checkpoint_state, load_json
-from sologpt_v2.model import SoloGPT_v2
+from solollm.model import SoloLLM
 
 
 @dataclass
@@ -26,7 +26,8 @@ def parse_model_spec(spec: str, *, v2_label: str) -> tuple[str, str, str | None]
     """Return label, loader, and HF model id if present.
 
     Supported forms:
-    - v2
+    - solollm
+    - v2 (legacy alias)
     - gpt2
     - distilgpt2
     - hf:EleutherAI/pythia-160m
@@ -44,8 +45,8 @@ def parse_model_spec(spec: str, *, v2_label: str) -> tuple[str, str, str | None]
         if not raw_spec:
             raise ValueError(f"invalid model spec {spec!r}: empty loader after '='")
 
-    if raw_spec == "v2":
-        return label_override or v2_label, "v2", None
+    if raw_spec in {"solollm", "local", "v2"}:
+        return label_override or v2_label, "solollm", None
     if raw_spec == "gpt2":
         return label_override or "gpt2", "gpt2", "gpt2"
     if raw_spec.startswith("hf:"):
@@ -92,20 +93,20 @@ def load_eval_model(
 ) -> LoadedEvalModel:
     label, loader, hf_model_id = parse_model_spec(spec, v2_label=v2_label)
 
-    if loader == "v2":
+    if loader == "solollm":
         config = load_json(v2_config)
-        model = SoloGPT_v2(config).to(device)
+        model = SoloLLM(config).to(device)
         state = load_checkpoint_state(v2_checkpoint, device)
         model.load_state_dict(state)
         tokenizer = prepare_tokenizer(GPT2Tokenizer.from_pretrained("gpt2"))
         context_length = int(config.get("max_seq_len", config.get("seq_length", config.get("n_positions", 0))))
         return LoadedEvalModel(
             label=label,
-            loader="v2",
+            loader="solollm",
             model=model,
             tokenizer=tokenizer,
             metadata={
-                "model": "v2",
+                "model": "solollm",
                 "checkpoint": str(v2_checkpoint),
                 "config": str(v2_config),
                 "tokenizer": "gpt2",

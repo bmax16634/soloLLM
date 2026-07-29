@@ -5,16 +5,25 @@ import pytest
 import torch
 import torch.nn as nn
 
-from sologpt_v1.model import SoloGPT_v1
-from sologpt_v2.model import SoloGPT_v2
+from solollm.model import SoloLLM
 
 
 FIXTURE_CONFIG = Path(__file__).parent / "fixtures" / "v2_tiny_config.json"
 MODERN_FIXTURE_CONFIG = Path(__file__).parent / "fixtures" / "v2_tiny_modern_config.json"
 GQA_FIXTURE_CONFIG = Path(__file__).parent / "fixtures" / "v2_tiny_gqa_config.json"
-MODERN_SMALL_CONFIG = Path(__file__).resolve().parents[1] / "sologpt_v2" / "config_modern_small.json"
-PROXY_V3_CONFIG = Path(__file__).resolve().parents[1] / "sologpt_v3" / "config_proxy_v3_style_60m_1024.json"
-PROXY_SMOLLM2_CONFIG = Path(__file__).resolve().parents[1] / "sologpt_v3" / "config_proxy_smollm2_style_60m_1024.json"
+MODERN_SMALL_CONFIG = (
+    Path(__file__).resolve().parents[1] / "configs" / "solollm-0.2-92m-base.json"
+)
+PROXY_V3_CONFIG = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "solollm-0.4-57m-v3-style-baseproxy.json"
+)
+PROXY_SMOLLM2_CONFIG = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "solollm-0.4-57m-smollm2-style-baseproxy.json"
+)
 
 
 def load_tiny_config():
@@ -32,20 +41,9 @@ def load_gqa_tiny_config():
         return json.load(f)
 
 
-def test_v1_forward_shape():
-    config = load_tiny_config()
-    model = SoloGPT_v1(config)
-    model.to(model.device)
-    input_ids = torch.randint(0, config["vocab_size"], (2, config["seq_length"]))
-
-    logits = model(input_ids)
-
-    assert logits.shape == (2, config["seq_length"], config["vocab_size"])
-
-
 def test_v2_forward_shape():
     config = load_tiny_config()
-    model = SoloGPT_v2(config)
+    model = SoloLLM(config)
     input_ids = torch.randint(0, config["vocab_size"], (2, config["seq_length"]))
 
     logits = model(input_ids)
@@ -55,7 +53,7 @@ def test_v2_forward_shape():
 
 def test_v2_cached_forward_matches_full_forward():
     config = load_tiny_config()
-    model = SoloGPT_v2(config).eval()
+    model = SoloLLM(config).eval()
     input_ids = torch.randint(0, config["vocab_size"], (2, 8))
 
     with torch.no_grad():
@@ -74,7 +72,7 @@ def test_v2_cached_forward_matches_full_forward():
 
 def test_v2_cached_forward_matches_full_forward_with_gqa():
     config = load_gqa_tiny_config()
-    model = SoloGPT_v2(config).eval()
+    model = SoloLLM(config).eval()
     input_ids = torch.randint(0, config["vocab_size"], (2, 8))
 
     with torch.no_grad():
@@ -93,7 +91,7 @@ def test_v2_cached_forward_matches_full_forward_with_gqa():
 
 def test_v2_preallocated_cached_forward_matches_full_forward():
     config = load_tiny_config()
-    model = SoloGPT_v2(config).eval()
+    model = SoloLLM(config).eval()
     input_ids = torch.randint(0, config["vocab_size"], (2, 8))
 
     with torch.no_grad():
@@ -119,7 +117,7 @@ def test_v2_preallocated_cached_forward_matches_full_forward():
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA is required for FP16 cache smoke test")
 def test_v2_cached_forward_supports_cuda_fp16():
     config = load_tiny_config()
-    model = SoloGPT_v2(config).cuda().half().eval()
+    model = SoloLLM(config).cuda().half().eval()
     input_ids = torch.randint(0, config["vocab_size"], (1, 8), device="cuda")
 
     with torch.no_grad():
@@ -132,7 +130,7 @@ def test_v2_cached_forward_supports_cuda_fp16():
 
 def test_v2_rejects_too_long_sequence():
     config = load_tiny_config()
-    model = SoloGPT_v2(config)
+    model = SoloLLM(config)
     input_ids = torch.randint(0, config["vocab_size"], (2, config["max_seq_len"] + 1))
 
     with pytest.raises(ValueError, match="exceeds max_seq_len"):
@@ -142,13 +140,13 @@ def test_v2_rejects_too_long_sequence():
 def test_v2_tied_embeddings_share_storage():
     config = load_tiny_config()
     config["tie_weights"] = True
-    model = SoloGPT_v2(config)
+    model = SoloLLM(config)
 
     assert model.input_embed.weight.data_ptr() == model.decoder.lm_head.weight.data_ptr()
 
 
 def test_v2_parameter_count_positive():
-    model = SoloGPT_v2(load_tiny_config())
+    model = SoloLLM(load_tiny_config())
 
     assert model.num_parameters() > 0
     assert model.summary()["parameter_count"] == model.num_parameters()
@@ -156,7 +154,7 @@ def test_v2_parameter_count_positive():
 
 def test_v2_modern_path_forward_shape_and_bias_policy():
     config = load_modern_tiny_config()
-    model = SoloGPT_v2(config)
+    model = SoloLLM(config)
     input_ids = torch.randint(0, config["vocab_size"], (2, config["seq_length"]))
 
     logits = model(input_ids)
@@ -171,7 +169,7 @@ def test_v2_modern_path_forward_shape_and_bias_policy():
 
 def test_v2_gqa_path_forward_shape_and_summary():
     config = load_gqa_tiny_config()
-    model = SoloGPT_v2(config)
+    model = SoloLLM(config)
     input_ids = torch.randint(0, config["vocab_size"], (2, config["seq_length"]))
 
     logits = model(input_ids)
@@ -192,14 +190,14 @@ def test_v2_rejects_invalid_gqa_ratio():
     config["n_kv_head"] = 3
 
     with pytest.raises(ValueError, match="must be divisible by n_kv_head"):
-        SoloGPT_v2(config)
+        SoloLLM(config)
 
 
 def test_v2_modern_small_config_parameter_count_target():
     with open(MODERN_SMALL_CONFIG, "r", encoding="utf-8") as f:
         config = json.load(f)
 
-    model = SoloGPT_v2(config)
+    model = SoloLLM(config)
     parameter_count = model.num_parameters()
 
     assert 85_000_000 <= parameter_count <= 100_000_000
@@ -212,8 +210,8 @@ def test_phase1_proxy_configs_are_size_matched():
     with open(PROXY_SMOLLM2_CONFIG, "r", encoding="utf-8") as f:
         smollm2_config = json.load(f)
 
-    v3_model = SoloGPT_v2(v3_config)
-    smollm2_model = SoloGPT_v2(smollm2_config)
+    v3_model = SoloLLM(v3_config)
+    smollm2_model = SoloLLM(smollm2_config)
     v3_params = v3_model.num_parameters()
     smollm2_params = smollm2_model.num_parameters()
 

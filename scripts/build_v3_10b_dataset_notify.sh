@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-ROOT="${ROOT:-/home/bmx/_projects/ariya/userdata/projects/soloLLM}"
+ROOT="${ROOT:-/home/bmx/_projects/soloLLM}"
 OUT_DIR="${OUT_DIR:-/home/bmx/_projects/soloLLM/data/v3_10b_1024}"
 LOG_PATH="${LOG_PATH:-${ROOT}/outputs/sologpt_v3/build_v3_10b_1024.log}"
 TARGET_TOKENS="${TARGET_TOKENS:-10000000000}"
-MANIFEST="${MANIFEST:-${ROOT}/sologpt_v3/data_sources.yaml}"
+MANIFEST="${MANIFEST:-${ROOT}/data_mixes/solollm-0.3-curated-10b.yaml}"
 
 mkdir -p "$(dirname "$LOG_PATH")"
 cd "$ROOT" || exit 2

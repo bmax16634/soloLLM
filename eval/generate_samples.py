@@ -17,21 +17,20 @@ from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parent
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+SRC_ROOT = REPO_ROOT / "src"
+for path in (SRC_ROOT, REPO_ROOT):
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
 
 from eval.eval import load_checkpoint_state, load_json, resolve_device
-from sologpt_v1.model import SoloGPT_v1
-from sologpt_v2.model import SoloGPT_v2
+from solollm.model import SoloLLM
 
 
 DEFAULT_PROMPTS = HERE / "phase4_prompts.json"
-DEFAULT_V1_CHECKPOINT = REPO_ROOT / "outputs" / "sologpt_v1" / "published" / "pytorch_model.safetensors"
-DEFAULT_V1_CONFIG = REPO_ROOT / "outputs" / "sologpt_v1" / "published" / "config" / "soloGPT_v1_config.json"
 DEFAULT_V2_CHECKPOINT = (
     REPO_ROOT / "outputs" / "sologpt_v2" / "final_3b_modern_small_from300m" / "final_model.pt"
 )
-DEFAULT_V2_CONFIG = REPO_ROOT / "sologpt_v2" / "config_modern_small.json"
+DEFAULT_V2_CONFIG = REPO_ROOT / "configs" / "solollm-0.2-92m-base.json"
 DEFAULT_OUTPUT_JSON = (
     REPO_ROOT / "outputs" / "sologpt_v2" / "final_3b_modern_small_from300m" / "phase4_generations.json"
 )
@@ -41,12 +40,10 @@ DEFAULT_OUTPUT_MD = REPO_ROOT / "docs" / "results" / "phase4_generations.md"
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate fixed qualitative Phase 4 samples")
     parser.add_argument("--prompts", default=str(DEFAULT_PROMPTS))
-    parser.add_argument("--models", nargs="+", default=["v1", "v2", "gpt2"], choices=["v1", "v2", "gpt2"])
-    parser.add_argument("--v1-checkpoint", default=str(DEFAULT_V1_CHECKPOINT))
-    parser.add_argument("--v1-config", default=str(DEFAULT_V1_CONFIG))
-    parser.add_argument("--v2-checkpoint", default=str(DEFAULT_V2_CHECKPOINT))
-    parser.add_argument("--v2-config", default=str(DEFAULT_V2_CONFIG))
-    parser.add_argument("--v2-label", default="v2", help="Display label for the v2-loaded model")
+    parser.add_argument("--models", nargs="+", default=["solollm", "gpt2"], choices=["solollm", "v2", "gpt2"])
+    parser.add_argument("--solollm-checkpoint", "--v2-checkpoint", dest="v2_checkpoint", default=str(DEFAULT_V2_CHECKPOINT))
+    parser.add_argument("--solollm-config", "--v2-config", dest="v2_config", default=str(DEFAULT_V2_CONFIG))
+    parser.add_argument("--solollm-label", "--v2-label", dest="v2_label", default="solollm", help="Display label for the local SoloLLM model")
     parser.add_argument("--output-json", default=str(DEFAULT_OUTPUT_JSON))
     parser.add_argument("--output-md", default=str(DEFAULT_OUTPUT_MD))
     parser.add_argument("--device", choices=["cpu", "cuda", "mps"], default=None)
@@ -58,7 +55,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def display_name(model_name: str, *, v2_label: str) -> str:
-    return v2_label if model_name == "v2" else model_name
+    return v2_label if model_name in {"solollm", "v2"} else model_name
 
 
 def resolve_path(value: str | Path) -> Path:
@@ -80,8 +77,6 @@ def load_model(
     model_name: str,
     *,
     device: torch.device,
-    v1_checkpoint: Path,
-    v1_config: Path,
     v2_checkpoint: Path,
     v2_config: Path,
 ) -> tuple[torch.nn.Module, dict[str, Any]]:
@@ -93,23 +88,17 @@ def load_model(
             "context_length": int(model.config.n_positions),
         }
 
-    if model_name == "v1":
-        config = load_json(v1_config)
-        model = SoloGPT_v1(config).to(device)
-        model.device = device
-        checkpoint = v1_checkpoint
-    else:
-        config = load_json(v2_config)
-        model = SoloGPT_v2(config).to(device)
-        checkpoint = v2_checkpoint
+    config = load_json(v2_config)
+    model = SoloLLM(config).to(device)
+    checkpoint = v2_checkpoint
 
     state = load_checkpoint_state(checkpoint, device)
     model.load_state_dict(state)
     context_length = int(config.get("max_seq_len", config.get("seq_length", config.get("n_positions", 512))))
     return model, {
-        "model": model_name,
+        "model": "solollm" if model_name == "v2" else model_name,
         "checkpoint": str(checkpoint),
-        "config": str(v1_config if model_name == "v1" else v2_config),
+        "config": str(v2_config),
         "parameter_count": sum(parameter.numel() for parameter in model.parameters()),
         "context_length": context_length,
     }
@@ -233,8 +222,6 @@ def main(argv: list[str] | None = None) -> int:
         models[model_name] = load_model(
             model_name,
             device=device,
-            v1_checkpoint=resolve_path(args.v1_checkpoint),
-            v1_config=resolve_path(args.v1_config),
             v2_checkpoint=resolve_path(args.v2_checkpoint),
             v2_config=resolve_path(args.v2_config),
         )

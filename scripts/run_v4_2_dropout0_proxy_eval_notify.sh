@@ -2,9 +2,9 @@
 set -uo pipefail
 
 ROOT="${ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-CONFIG_PATH="${CONFIG_PATH:-${ROOT}/sologpt_v4/config_proxy_v4_2_dropout0_57m_1024.json}"
+CONFIG_PATH="${CONFIG_PATH:-${ROOT}/configs/solollm-0.4.2-57m-dropout0-baseproxy.json}"
 DATA_DIR="${DATA_DIR:-${ROOT}/data/v4_1b_blend_300m_1024}"
-MANIFEST="${MANIFEST:-${ROOT}/sologpt_v4/data_mix_v4_1b_blend_300m.yaml}"
+MANIFEST="${MANIFEST:-${ROOT}/data_mixes/solollm-0.4.1b-balanced-blend-300m.yaml}"
 
 MIX_NAME="${MIX_NAME:-v4_2_dropout0}"
 RUN_OUT_DIR="${RUN_OUT_DIR:-${ROOT}/outputs/sologpt_v4/arch_proxy_v4_2_dropout0_57m_300m}"
@@ -150,7 +150,7 @@ LOG_PATH="$EVAL_LOG_PATH" \
 V2_LABEL="$EVAL_LABEL" \
 V2_CHECKPOINT="${RUN_OUT_DIR}/final_model.pt" \
 V2_CONFIG="$CONFIG_PATH" \
-MODELS=v2 \
+MODELS=solollm \
 "${ROOT}/scripts/run_modern_baselines_eval_notify.sh"
 eval_status=$?
 

@@ -14,8 +14,10 @@ import torch
 from tqdm import tqdm
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parent
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+SRC_ROOT = REPO_ROOT / "src"
+for path in (SRC_ROOT, REPO_ROOT):
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
 
 from eval.eval import resolve_device, resolve_path
 from eval.external_benchmarks import DEFAULT_V2_CHECKPOINT, DEFAULT_V2_CONFIG
@@ -30,13 +32,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--models",
         nargs="+",
-        default=["v2", "gpt2"],
-        help="Model specs: v2, gpt2, distilgpt2, hf:org/model, or label=hf:org/model",
+        default=["solollm", "gpt2"],
+        help="Model specs: solollm, v2, gpt2, distilgpt2, hf:org/model, or label=hf:org/model",
     )
     parser.add_argument("--benchmarks", nargs="+", default=BENCHMARKS, choices=BENCHMARKS)
-    parser.add_argument("--v2-checkpoint", default=str(DEFAULT_V2_CHECKPOINT))
-    parser.add_argument("--v2-config", default=str(DEFAULT_V2_CONFIG))
-    parser.add_argument("--v2-label", default="v2", help="Display label for the v2-loaded model")
+    parser.add_argument("--solollm-checkpoint", "--v2-checkpoint", dest="v2_checkpoint", default=str(DEFAULT_V2_CHECKPOINT))
+    parser.add_argument("--solollm-config", "--v2-config", dest="v2_config", default=str(DEFAULT_V2_CONFIG))
+    parser.add_argument("--solollm-label", "--v2-label", dest="v2_label", default="solollm", help="Display label for the local SoloLLM model")
     parser.add_argument("--device", choices=["cpu", "cuda", "mps"], default=None)
     parser.add_argument("--context-length", type=int, default=512)
     parser.add_argument("--max-examples", type=int, default=0, help="0 means full validation split")

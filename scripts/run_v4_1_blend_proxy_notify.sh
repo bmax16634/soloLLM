@@ -3,7 +3,7 @@ set -uo pipefail
 
 ROOT="${ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 MIX_NAME="${MIX_NAME:-v4_1_blend}"
-MANIFEST="${MANIFEST:-${ROOT}/sologpt_v4/data_mix_v4_1_blend_300m.yaml}"
+MANIFEST="${MANIFEST:-${ROOT}/data_mixes/solollm-0.4.1-broad-blend-300m.yaml}"
 DATA_DIR="${DATA_DIR:-${ROOT}/data/v4_1_blend_300m_1024}"
 RUN_OUT_DIR="${RUN_OUT_DIR:-${ROOT}/outputs/sologpt_v4/data_proxy_v4_1_blend_57m_300m}"
 RUN_DIR="${RUN_DIR:-${ROOT}/outputs/sologpt_v4/data_proxy_v4_1_blend}"

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-ROOT="${ROOT:-/home/bmx/_projects/ariya/userdata/projects/soloLLM}"
+ROOT="${ROOT:-/home/bmx/_projects/soloLLM}"
 LABEL="${LABEL:-v3_1b_150m}"
 OUT_DIR="${OUT_DIR:-${ROOT}/outputs/eval_suites/v3_1b_150m_gpt2_full_suite}"
 REPORT_DIR="${REPORT_DIR:-${OUT_DIR}/reports}"
 LOG_PATH="${LOG_PATH:-${OUT_DIR}/v3_eval_suite_full.log}"
 CANDIDATE_CHECKPOINT="${CANDIDATE_CHECKPOINT:-${ROOT}/outputs/sologpt_v3/v3_full_1b_plus_150m_1024/final_model.pt}"
-CANDIDATE_CONFIG="${CANDIDATE_CONFIG:-${ROOT}/sologpt_v3/config_plus_150m_1024.json}"
+CANDIDATE_CONFIG="${CANDIDATE_CONFIG:-${ROOT}/configs/solollm-0.3-152m-base.json}"
 
 mkdir -p "$OUT_DIR" "$REPORT_DIR"
 cd "$ROOT" || exit 2
@@ -28,7 +28,7 @@ echo "pid=$$"
 
 python -m eval.v3_eval_suite \
   --candidate-label "$LABEL" \
-  --candidate-loader v2 \
+  --candidate-loader solollm \
   --candidate-checkpoint "$CANDIDATE_CHECKPOINT" \
   --candidate-config "$CANDIDATE_CONFIG" \
   --baseline-label gpt2 \

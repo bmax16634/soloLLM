@@ -21,7 +21,7 @@ DEFAULT_CHECKPOINT = (
     / "checkpoints"
     / "latest.pt"
 )
-DEFAULT_CONFIG = REPO_ROOT / "sologpt_v2" / "config_modern_small.json"
+DEFAULT_CONFIG = REPO_ROOT / "configs" / "solollm-0.2-92m-base.json"
 EXTERNAL_SHARD_DIR = REPO_ROOT.parents[3] / "soloLLM" / "data" / "tokenized_chunks"
 DEFAULT_SHARD_DIR = EXTERNAL_SHARD_DIR if EXTERNAL_SHARD_DIR.exists() else REPO_ROOT / "data" / "tokenized_chunks"
 
@@ -38,9 +38,9 @@ class SuiteCommand:
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Prepare or run the full SoloLLM v3 eval suite")
+    parser = argparse.ArgumentParser(description="Prepare or run the full SoloLLM base-model eval suite")
     parser.add_argument("--candidate-label", default="v3", help="Display label for the candidate model")
-    parser.add_argument("--candidate-loader", default="v2", choices=["v2"], help="Underlying local loader for the candidate")
+    parser.add_argument("--candidate-loader", default="solollm", choices=["solollm", "v2"], help="Underlying local loader for the candidate")
     parser.add_argument("--candidate-checkpoint", default=str(DEFAULT_CHECKPOINT))
     parser.add_argument("--candidate-config", default=str(DEFAULT_CONFIG))
     parser.add_argument("--baseline-label", default="gpt2")

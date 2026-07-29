@@ -2,6 +2,7 @@
 set -u
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PYTHONPATH="${ROOT}/src:${ROOT}:${PYTHONPATH:-}"
 cd "$ROOT" || exit 1
 
 SOURCE_CKPT="${SOURCE_CKPT:-outputs/sologpt_v2/pilot_300m_modern_small_resume100m/checkpoints/latest.pt}"
@@ -98,8 +99,8 @@ if [[ ! -f "$SOURCE_CKPT" ]]; then
   exit 2
 fi
 
-nice -n 10 ionice -c2 -n7 python -m sologpt_v2.pretrain \
-  --config sologpt_v2/config_modern_small.json \
+nice -n 10 ionice -c2 -n7 python -m solollm.train \
+  --config configs/solollm-0.2-92m-base.json \
   --shard-dir "$SHARD_DIR" \
   --output-dir "$RUN_DIR" \
   --train-shards 0:54 \

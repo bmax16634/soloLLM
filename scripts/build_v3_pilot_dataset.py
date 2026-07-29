@@ -467,7 +467,7 @@ def build_stats(
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build a streaming v3 pilot tokenized corpus")
-    parser.add_argument("--manifest", default="sologpt_v3/data_sources.yaml")
+    parser.add_argument("--manifest", default="data_mixes/solollm-0.3-curated-10b.yaml")
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--target-tokens", default=None, help="Total accepted tokens to build")
     parser.add_argument("--seq-length", type=int, default=None)

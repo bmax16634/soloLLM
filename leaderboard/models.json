@@ -81,43 +81,43 @@
     "notes": "Stretch local baseline; quality target, not same-size."
   },
   "solollm_v2_5p6b": {
-    "name": "SoloLLM v2 5.60B",
+    "name": "SoloLLM-0.2-92M-Base",
     "family": "SoloLLM",
     "type": "base model",
     "params": 91654400,
     "train_tokens_display": "5.60B",
     "context": 512,
-    "notes": "v2 diagnostic baseline."
+    "notes": "Early research diagnostic baseline."
   },
   "solollm_v3_123m": {
-    "name": "SoloLLM v3 123M",
+    "name": "SoloLLM-0.3-123M-Base",
     "family": "SoloLLM",
     "type": "base model",
     "params": 123551232,
     "train_tokens_display": "9.80B",
     "context": 1024,
-    "notes": "Smaller-than-GPT-2 v3 ablation."
+    "notes": "Smaller-than-GPT-2 research ablation."
   },
   "solollm_v3_150m": {
-    "name": "SoloLLM v3 150M",
+    "name": "SoloLLM-0.3-152M-Base",
     "family": "SoloLLM",
     "type": "base model",
     "params": 151868928,
     "train_tokens_display": "10.00B",
     "context": 1024,
-    "notes": "Public final v3 checkpoint."
+    "notes": "Earlier 150M research checkpoint."
   },
   "solollm_v4_reasoning_150m": {
-    "name": "SoloLLM v4 reasoning 150M",
+    "name": "SoloLLM-0.4-152M-Base",
     "family": "SoloLLM",
     "type": "base model",
     "params": 151868928,
     "train_tokens_display": "9.80B",
     "context": 1024,
-    "notes": "Reasoning-heavy v4 ablation; MC/repetition improved, broad PPL regressed."
+    "notes": "Reasoning-heavy ablation; MC/repetition improved, broad PPL regressed."
   },
   "solollm_v4_2_123m": {
-    "name": "SoloLLM v4.2 123M",
+    "name": "SoloLLM-1.0-123M-Base",
     "family": "SoloLLM",
     "type": "base model",
     "params": 123551232,
@@ -126,30 +126,30 @@
     "notes": "Smaller-than-GPT-2 ablation; wins fixed MC suite, not every metric."
   },
   "solollm_v4_2_150m": {
-    "name": "SoloLLM v4.2 150M",
+    "name": "SoloLLM-1.0-152M-Base",
     "family": "SoloLLM",
     "type": "base model",
     "params": 151868928,
     "train_tokens_display": "9.80B",
     "context": 1024,
-    "notes": "Current best SoloLLM quantitative checkpoint."
+    "notes": "Current best SoloLLM-1.0 quantitative checkpoint."
   },
   "solollm_v4_2_proxy_57m_300m": {
-    "name": "SoloLLM v4.2 57M/300M proxy",
+    "name": "SoloLLM-0.4.2-57M-BaseProxy",
     "family": "SoloLLM",
     "type": "proxy base model",
     "params": 57117696,
     "train_tokens_display": "300M",
     "context": 1024,
-    "notes": "v4.2 proxy used as the v5 gate comparison."
+    "notes": "Research proxy used as the r5 gate comparison."
   },
   "solollm_v5_proxy_57m_1b": {
-    "name": "SoloLLM v5 smol-quality 57M/1B proxy",
+    "name": "SoloLLM-1.1-57M-BaseProxy",
     "family": "SoloLLM",
     "type": "proxy base model",
     "params": 57117696,
     "train_tokens_display": "1.00B",
     "context": 1024,
-    "notes": "First v5 proxy aimed at SmolLM2-style quality."
+    "notes": "Research proxy aimed at SmolLM2-style quality."
   }
 }

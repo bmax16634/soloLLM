@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="${ROOT:-/home/bmx/ariya-data/projects/soloLLM}"
+ROOT="${ROOT:-/home/bmx/_projects/soloLLM}"
 
 export ROOT
 export RUN_NAME="${RUN_NAME:-v4_2_dropout0_v4_1_blend_10b_150m_1024}"
-export MANIFEST="${MANIFEST:-${ROOT}/sologpt_v4/data_mix_v4_2_dropout0_v4_1_blend_10b.yaml}"
+export MANIFEST="${MANIFEST:-${ROOT}/data_mixes/solollm-1.0-broad-blend-10b.yaml}"
 export DATA_DIR="${DATA_DIR:-${ROOT}/data/v4_2_dropout0_v4_1_blend_10b_1024}"
 export BUILD_IF_MISSING="${BUILD_IF_MISSING:-0}"
 export OVERWRITE_DATA="${OVERWRITE_DATA:-0}"
 
 export TRAIN_OUT_DIR="${TRAIN_OUT_DIR:-${ROOT}/outputs/sologpt_v4/${RUN_NAME}}"
 export TRAIN_LOG_PATH="${TRAIN_LOG_PATH:-${ROOT}/outputs/sologpt_v4/${RUN_NAME}.log}"
-export CONFIG_PATH="${CONFIG_PATH:-${ROOT}/sologpt_v4/config_v4_2_dropout0_v4_1_blend_150m_1024.json}"
+export CONFIG_PATH="${CONFIG_PATH:-${ROOT}/configs/solollm-1.0-152m-base.json}"
 export SHARD_DIR="${SHARD_DIR:-${ROOT}/data/v4_2_dropout0_v4_1_blend_10b_1024/chunks}"
 export TRAIN_SHARDS="${TRAIN_SHARDS:-0:1168}"
 export VAL_SHARDS="${VAL_SHARDS:-1169:1180}"

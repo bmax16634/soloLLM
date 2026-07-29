@@ -1,0 +1,68 @@
+version: 1
+description: "SoloLLM research r5.1 proxy: high-quality web and education mix for a 60M/1B gate"
+tokenizer: gpt2
+seq_length: 1024
+target_tokens: 1000000000
+shard_tokens: 8388608
+split:
+  train: 0.98
+  val: 0.01
+  test: 0.01
+filters:
+  min_chars: 200
+  max_chars: 200000
+  min_alpha_ratio: 0.45
+  max_repeated_line_fraction: 0.35
+  min_language_score: 0.65
+streaming:
+  shuffle_buffer: 0
+  seed: 2052
+sources:
+  - id: fineweb_edu_sample_10bt
+    enabled: true
+    weight: 0.40
+    dataset: HuggingFaceFW/fineweb-edu
+    config: sample-10BT
+    split: train
+    text_field: text
+    notes: "Primary high-quality educational web source."
+  - id: smollm_fineweb_edu_dedup
+    enabled: true
+    weight: 0.25
+    dataset: HuggingFaceTB/smollm-corpus
+    config: fineweb-edu-dedup
+    split: train
+    text_field: text
+    notes: "Deduplicated SmolLM educational-web bridge."
+  - id: dclm_baseline
+    enabled: true
+    weight: 0.15
+    dataset: mlfoundations/dclm-baseline-1.0-parquet
+    config: null
+    split: train
+    text_field: text
+    notes: "Curated broad-web quality source."
+  - id: wikipedia_en_20231101
+    enabled: true
+    weight: 0.10
+    dataset: wikimedia/wikipedia
+    config: 20231101.en
+    split: train
+    text_field: text
+    notes: "Reference prose for factual and encyclopedic style."
+  - id: fineweb_sample_10bt
+    enabled: true
+    weight: 0.07
+    dataset: HuggingFaceFW/fineweb
+    config: sample-10BT
+    split: train
+    text_field: text
+    notes: "Small general-web slice for distribution breadth."
+  - id: openwebtext
+    enabled: true
+    weight: 0.03
+    dataset: Skylion007/openwebtext
+    config: plain_text
+    split: train
+    text_field: text
+    notes: "Tiny legacy distribution anchor."

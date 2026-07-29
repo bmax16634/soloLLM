@@ -1,4 +1,4 @@
-"""Evaluate SoloGPT and GPT-2 checkpoints on tokenized shards."""
+"""Evaluate SoloLLM and GPT-2 checkpoints on tokenized shards."""
 
 from __future__ import annotations
 
@@ -19,11 +19,12 @@ from tqdm import tqdm
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parent
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+SRC_ROOT = REPO_ROOT / "src"
+for path in (SRC_ROOT, REPO_ROOT):
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
 
-from sologpt_v1.model import SoloGPT_v1
-from sologpt_v2.model import SoloGPT_v2
+from solollm.model import SoloLLM
 
 
 class HeldoutDataset(Dataset):
@@ -44,9 +45,9 @@ class HeldoutDataset(Dataset):
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Evaluate language-model perplexity on tokenized shards")
-    parser.add_argument("--model", choices=["v1", "v2", "gpt2"], required=True)
-    parser.add_argument("--checkpoint", default=None, help="Checkpoint path for v1/v2")
-    parser.add_argument("--config", default=None, help="Config JSON path for v1/v2")
+    parser.add_argument("--model", choices=["solollm", "v2", "gpt2"], required=True)
+    parser.add_argument("--checkpoint", default=None, help="Checkpoint path for local SoloLLM models")
+    parser.add_argument("--config", default=None, help="Config JSON path for local SoloLLM models")
     parser.add_argument("--shard-dir", default="data/tokenized_chunks", help="Directory containing .pt shards")
     parser.add_argument("--shards", default=None, help="Inclusive shard range, for example 58:60")
     parser.add_argument("--batch-size", type=int, default=1)
@@ -149,10 +150,8 @@ def load_checkpoint_state(path: Path, device: torch.device) -> dict[str, torch.T
 
 
 def default_config_path(model_name: str) -> Path:
-    if model_name == "v1":
-        return REPO_ROOT / "sologpt_v1" / "config.json"
-    if model_name == "v2":
-        return REPO_ROOT / "sologpt_v2" / "config.json"
+    if model_name in {"solollm", "v2"}:
+        return REPO_ROOT / "configs" / "solollm-0.2-gpt2-parity.json"
     raise ValueError("GPT-2 does not use a local config")
 
 
@@ -173,16 +172,12 @@ def load_model(args: argparse.Namespace, device: torch.device) -> tuple[torch.nn
     config_path = resolve_path(args.config, Path.cwd()) if args.config else default_config_path(args.model)
     config = load_json(config_path)
 
-    if args.model == "v1":
-        model = SoloGPT_v1(config).to(device)
-        model.device = device
-    else:
-        model = SoloGPT_v2(config).to(device)
+    model = SoloLLM(config).to(device)
 
     state = load_checkpoint_state(resolve_path(args.checkpoint, Path.cwd()), device)
     model.load_state_dict(state)
     return model, {
-        "model_type": args.model,
+        "model_type": "solollm" if args.model == "v2" else args.model,
         "config": str(config_path),
         "context_length": int(config.get("max_seq_len", config.get("seq_length", config.get("n_positions", 0)))),
         "parameter_count": sum(parameter.numel() for parameter in model.parameters()),

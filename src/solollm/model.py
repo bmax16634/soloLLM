@@ -1,0 +1,603 @@
+"""SoloLLM model.
+
+This is a small GPT-style decoder-only transformer intended to be trained
+from scratch. The public contract stays simple:
+
+    model = SoloLLM(config)
+    logits = model(input_ids)
+
+where input_ids has shape (batch, sequence).
+"""
+
+from __future__ import annotations
+
+import math
+from typing import Any
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+KVCache = list[tuple[torch.Tensor, torch.Tensor]]
+
+
+def count_parameters(model: nn.Module, trainable_only: bool = False) -> int:
+    """Return the number of unique parameters in a module."""
+
+    return sum(
+        parameter.numel()
+        for parameter in model.parameters()
+        if not trainable_only or parameter.requires_grad
+    )
+
+
+def _apply_rope(x: torch.Tensor, cos: torch.Tensor, sin: torch.Tensor) -> torch.Tensor:
+    """Apply rotary embeddings to the last dimension of q/k tensors."""
+
+    x_even = x[..., 0::2]
+    x_odd = x[..., 1::2]
+    rotated_even = x_even * cos - x_odd * sin
+    rotated_odd = x_even * sin + x_odd * cos
+    return torch.stack((rotated_even, rotated_odd), dim=-1).flatten(-2)
+
+
+class RotaryEmbedding(nn.Module):
+    """RoPE cache for attention query/key tensors shaped (B, H, T, D)."""
+
+    def __init__(self, head_dim: int, base: float = 10000.0) -> None:
+        super().__init__()
+        if head_dim % 2 != 0:
+            raise ValueError(f"RoPE requires even head_dim, got {head_dim}")
+
+        inv_freq = 1.0 / (float(base) ** (torch.arange(0, head_dim, 2).float() / head_dim))
+        self.register_buffer("inv_freq", inv_freq, persistent=False)
+        self.register_buffer("cos_cached", torch.empty(0), persistent=False)
+        self.register_buffer("sin_cached", torch.empty(0), persistent=False)
+
+    @torch.no_grad()
+    def _build_cache(self, seq_len: int, device: torch.device, dtype: torch.dtype) -> None:
+        positions = torch.arange(seq_len, device=device, dtype=self.inv_freq.dtype)
+        freqs = torch.einsum("t,d->td", positions, self.inv_freq.to(device))
+        self.cos_cached = freqs.cos().to(dtype=dtype)
+        self.sin_cached = freqs.sin().to(dtype=dtype)
+
+    def forward(
+        self,
+        q: torch.Tensor,
+        k: torch.Tensor,
+        *,
+        position_offset: int = 0,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        seq_len = q.size(-2)
+        needed_len = position_offset + seq_len
+        cache_missing = self.cos_cached.numel() == 0
+        cache_too_short = cache_missing or self.cos_cached.size(0) < needed_len
+        cache_wrong_device = cache_missing or self.cos_cached.device != q.device
+        cache_wrong_dtype = cache_missing or self.cos_cached.dtype != q.dtype
+
+        if cache_too_short or cache_wrong_device or cache_wrong_dtype:
+            self._build_cache(needed_len, q.device, q.dtype)
+
+        cos = self.cos_cached[position_offset:needed_len][None, None, :, :]
+        sin = self.sin_cached[position_offset:needed_len][None, None, :, :]
+        return _apply_rope(q, cos, sin), _apply_rope(k, cos, sin)
+
+
+class CausalSelfAttentionRoPE(nn.Module):
+    """Causal self-attention with RoPE and optional grouped-query attention."""
+
+    def __init__(
+        self,
+        embed_dim: int,
+        n_heads: int,
+        dropout: float,
+        rope_base: float = 10000.0,
+        qkv_bias: bool = False,
+        proj_bias: bool = False,
+        n_kv_heads: int | None = None,
+    ) -> None:
+        super().__init__()
+        if embed_dim % n_heads != 0:
+            raise ValueError(f"n_embd ({embed_dim}) must be divisible by n_head ({n_heads})")
+
+        self.embed_dim = int(embed_dim)
+        self.n_heads = int(n_heads)
+        self.n_kv_heads = int(n_kv_heads or n_heads)
+        if self.n_kv_heads <= 0:
+            raise ValueError(f"n_kv_head must be positive, got {self.n_kv_heads}")
+        if self.n_heads % self.n_kv_heads != 0:
+            raise ValueError(
+                f"n_head ({self.n_heads}) must be divisible by n_kv_head ({self.n_kv_heads})"
+            )
+        self.head_dim = self.embed_dim // self.n_heads
+        if self.head_dim % 2 != 0:
+            raise ValueError(
+                f"RoPE requires an even head dimension, got {self.head_dim} "
+                f"from n_embd={embed_dim}, n_head={n_heads}"
+            )
+        self.kv_group_size = self.n_heads // self.n_kv_heads
+
+        if self.n_kv_heads == self.n_heads:
+            self.qkv = nn.Linear(self.embed_dim, 3 * self.embed_dim, bias=bool(qkv_bias))
+            self.q_proj = None
+            self.k_proj = None
+            self.v_proj = None
+        else:
+            kv_dim = self.n_kv_heads * self.head_dim
+            self.qkv = None
+            self.q_proj = nn.Linear(self.embed_dim, self.embed_dim, bias=bool(qkv_bias))
+            self.k_proj = nn.Linear(self.embed_dim, kv_dim, bias=bool(qkv_bias))
+            self.v_proj = nn.Linear(self.embed_dim, kv_dim, bias=bool(qkv_bias))
+        self.proj = nn.Linear(self.embed_dim, self.embed_dim, bias=bool(proj_bias))
+        self.proj._is_residual_projection = True
+        self.dropout = float(dropout)
+        self.resid_drop = nn.Dropout(dropout)
+        self.rope = RotaryEmbedding(self.head_dim, base=rope_base)
+
+    def _repeat_kv(self, x: torch.Tensor) -> torch.Tensor:
+        if self.kv_group_size == 1:
+            return x
+        batch_size, n_kv_heads, seq_len, head_dim = x.shape
+        return (
+            x[:, :, None, :, :]
+            .expand(batch_size, n_kv_heads, self.kv_group_size, seq_len, head_dim)
+            .reshape(batch_size, self.n_heads, seq_len, head_dim)
+        )
+
+    def _causal_mask(
+        self,
+        q_len: int,
+        k_len: int,
+        past_len: int,
+        device: torch.device,
+        dtype: torch.dtype,
+    ) -> torch.Tensor:
+        query_positions = past_len + torch.arange(q_len, device=device)
+        key_positions = torch.arange(k_len, device=device)
+        masked = key_positions[None, :] > query_positions[:, None]
+        mask = torch.zeros(q_len, k_len, device=device, dtype=dtype)
+        return mask.masked_fill(masked, float("-inf"))
+
+    def _manual_attention(
+        self,
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+        *,
+        past_len: int = 0,
+    ) -> torch.Tensor:
+        q_len = q.size(-2)
+        k_len = k.size(-2)
+        scores = (q @ k.transpose(-2, -1)) / math.sqrt(self.head_dim)
+        query_positions = past_len + torch.arange(q_len, device=q.device)
+        key_positions = torch.arange(k_len, device=q.device)
+        causal_mask = key_positions[None, :] > query_positions[:, None]
+        scores = scores.masked_fill(causal_mask, float("-inf"))
+        probs = F.softmax(scores, dim=-1)
+        probs = F.dropout(probs, p=self.dropout, training=self.training)
+        return probs @ v
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        past_key_value: tuple[torch.Tensor, torch.Tensor] | None = None,
+        *,
+        use_cache: bool = False,
+        cache_position: int | None = None,
+    ) -> torch.Tensor | tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
+        batch_size, seq_len, channels = x.shape
+
+        if self.qkv is not None:
+            qkv = self.qkv(x)
+            q, k, v = qkv.split(channels, dim=-1)
+            q = q.view(batch_size, seq_len, self.n_heads, self.head_dim).transpose(1, 2)
+            k = k.view(batch_size, seq_len, self.n_heads, self.head_dim).transpose(1, 2)
+            v = v.view(batch_size, seq_len, self.n_heads, self.head_dim).transpose(1, 2)
+        else:
+            assert self.q_proj is not None
+            assert self.k_proj is not None
+            assert self.v_proj is not None
+            q = self.q_proj(x).view(batch_size, seq_len, self.n_heads, self.head_dim).transpose(1, 2)
+            k = self.k_proj(x).view(batch_size, seq_len, self.n_kv_heads, self.head_dim).transpose(1, 2)
+            v = self.v_proj(x).view(batch_size, seq_len, self.n_kv_heads, self.head_dim).transpose(1, 2)
+
+        past_len = 0
+        if cache_position is not None:
+            past_len = int(cache_position)
+        elif past_key_value is not None:
+            past_k, past_v = past_key_value
+            past_len = past_k.size(-2)
+
+        q, k = self.rope(q, k, position_offset=past_len)
+        present_key_value = (k, v)
+        if past_key_value is not None:
+            if cache_position is None:
+                k = torch.cat((past_key_value[0], k), dim=-2)
+                v = torch.cat((past_key_value[1], v), dim=-2)
+                present_key_value = (k, v)
+            else:
+                cache_end = cache_position + seq_len
+                past_key_value[0][:, :, cache_position:cache_end, :] = k
+                past_key_value[1][:, :, cache_position:cache_end, :] = v
+                k = past_key_value[0][:, :, :cache_end, :]
+                v = past_key_value[1][:, :, :cache_end, :]
+                present_key_value = past_key_value
+
+        attn_k = self._repeat_kv(k)
+        attn_v = self._repeat_kv(v)
+
+        if hasattr(F, "scaled_dot_product_attention"):
+            use_native_causal = past_len == 0
+            attn_mask = None
+            if not use_native_causal:
+                attn_mask = self._causal_mask(seq_len, attn_k.size(-2), past_len, q.device, q.dtype)
+            attn = F.scaled_dot_product_attention(
+                q,
+                attn_k,
+                attn_v,
+                attn_mask=attn_mask,
+                dropout_p=self.dropout if self.training else 0.0,
+                is_causal=use_native_causal,
+            )
+        else:
+            attn = self._manual_attention(q, attn_k, attn_v, past_len=past_len)
+
+        y = attn.transpose(1, 2).contiguous().view(batch_size, seq_len, channels)
+        y = self.resid_drop(self.proj(y))
+        if use_cache:
+            return y, present_key_value
+        return y
+
+
+class RMSNorm(nn.Module):
+    """Root-mean-square normalization used by modern decoder-only LMs."""
+
+    def __init__(self, embed_dim: int, eps: float = 1e-5) -> None:
+        super().__init__()
+        self.weight = nn.Parameter(torch.ones(embed_dim))
+        self.eps = float(eps)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        normed = x * torch.rsqrt(x.pow(2).mean(dim=-1, keepdim=True) + self.eps)
+        return normed * self.weight
+
+
+def make_norm(norm_type: str, embed_dim: int) -> nn.Module:
+    normalized = norm_type.lower()
+    if normalized == "layernorm":
+        return nn.LayerNorm(embed_dim)
+    if normalized == "rmsnorm":
+        return RMSNorm(embed_dim)
+    raise ValueError(f"unsupported norm_type={norm_type!r}; expected 'layernorm' or 'rmsnorm'")
+
+
+class FeedForward(nn.Module):
+    def __init__(
+        self,
+        embed_dim: int,
+        dropout: float,
+        *,
+        mlp_type: str = "gelu",
+        use_bias: bool | None = None,
+        mlp_hidden_dim: int | None = None,
+    ) -> None:
+        super().__init__()
+        self.mlp_type = mlp_type.lower()
+        linear_bias = True if use_bias is None else bool(use_bias)
+
+        if self.mlp_type == "gelu":
+            hidden_dim = int(mlp_hidden_dim or 4 * embed_dim)
+            self.net = nn.Sequential(
+                nn.Linear(embed_dim, hidden_dim, bias=linear_bias),
+                nn.GELU(),
+                nn.Linear(hidden_dim, embed_dim, bias=linear_bias),
+                nn.Dropout(dropout),
+            )
+            self.net[2]._is_residual_projection = True
+        elif self.mlp_type == "swiglu":
+            hidden_dim = int(mlp_hidden_dim or (8 * embed_dim / 3))
+            self.w1 = nn.Linear(embed_dim, hidden_dim, bias=linear_bias)
+            self.w3 = nn.Linear(embed_dim, hidden_dim, bias=linear_bias)
+            self.w2 = nn.Linear(hidden_dim, embed_dim, bias=linear_bias)
+            self.w2._is_residual_projection = True
+            self.dropout = nn.Dropout(dropout)
+        else:
+            raise ValueError(f"unsupported mlp_type={mlp_type!r}; expected 'gelu' or 'swiglu'")
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if self.mlp_type == "gelu":
+            return self.net(x)
+        return self.dropout(self.w2(F.silu(self.w1(x)) * self.w3(x)))
+
+
+class DecoderLayer(nn.Module):
+    """Pre-norm transformer decoder block."""
+
+    def __init__(
+        self,
+        embed_dim: int,
+        n_heads: int,
+        dropout: float,
+        rope_base: float,
+        qkv_bias: bool,
+        n_kv_heads: int,
+        norm_type: str,
+        mlp_type: str,
+        use_bias: bool | None,
+        mlp_hidden_dim: int | None,
+    ) -> None:
+        super().__init__()
+        proj_bias = False if use_bias is None else bool(use_bias)
+        self.norm1 = make_norm(norm_type, embed_dim)
+        self.attn = CausalSelfAttentionRoPE(
+            embed_dim=embed_dim,
+            n_heads=n_heads,
+            dropout=dropout,
+            rope_base=rope_base,
+            qkv_bias=qkv_bias,
+            proj_bias=proj_bias,
+            n_kv_heads=n_kv_heads,
+        )
+        self.norm2 = make_norm(norm_type, embed_dim)
+        self.ff = FeedForward(
+            embed_dim,
+            dropout,
+            mlp_type=mlp_type,
+            use_bias=use_bias,
+            mlp_hidden_dim=mlp_hidden_dim,
+        )
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        past_key_value: tuple[torch.Tensor, torch.Tensor] | None = None,
+        *,
+        use_cache: bool = False,
+        cache_position: int | None = None,
+    ) -> torch.Tensor | tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
+        attn_output = self.attn(
+            self.norm1(x),
+            past_key_value=past_key_value,
+            use_cache=use_cache,
+            cache_position=cache_position,
+        )
+        present_key_value = None
+        if use_cache:
+            attn_output, present_key_value = attn_output
+        x = x + attn_output
+        x = x + self.ff(self.norm2(x))
+        if use_cache:
+            assert present_key_value is not None
+            return x, present_key_value
+        return x
+
+
+class DecoderBlock(nn.Module):
+    def __init__(
+        self,
+        embed_dim: int,
+        n_heads: int,
+        n_layers: int,
+        vocab_size: int,
+        dropout: float,
+        rope_base: float,
+        qkv_bias: bool,
+        n_kv_heads: int,
+        norm_type: str,
+        mlp_type: str,
+        use_bias: bool | None,
+        mlp_hidden_dim: int | None,
+    ) -> None:
+        super().__init__()
+        self.layers = nn.ModuleList(
+            [
+                DecoderLayer(
+                    embed_dim=embed_dim,
+                    n_heads=n_heads,
+                    dropout=dropout,
+                    rope_base=rope_base,
+                    qkv_bias=qkv_bias,
+                    n_kv_heads=n_kv_heads,
+                    norm_type=norm_type,
+                    mlp_type=mlp_type,
+                    use_bias=use_bias,
+                    mlp_hidden_dim=mlp_hidden_dim,
+                )
+                for _ in range(n_layers)
+            ]
+        )
+        self.norm = make_norm(norm_type, embed_dim)
+        self.lm_head = nn.Linear(embed_dim, vocab_size, bias=False)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        for layer in self.layers:
+            x = layer(x)
+        return self.lm_head(self.norm(x))
+
+    def forward_with_cache(
+        self,
+        x: torch.Tensor,
+        past_key_values: KVCache | None = None,
+        *,
+        cache_position: int | None = None,
+    ) -> tuple[torch.Tensor, KVCache]:
+        if past_key_values is not None and len(past_key_values) != len(self.layers):
+            raise ValueError(
+                f"past_key_values must have {len(self.layers)} layers, got {len(past_key_values)}"
+            )
+
+        next_key_values: KVCache = []
+        for index, layer in enumerate(self.layers):
+            past_key_value = None if past_key_values is None else past_key_values[index]
+            x, present_key_value = layer(
+                x,
+                past_key_value=past_key_value,
+                use_cache=True,
+                cache_position=cache_position,
+            )
+            next_key_values.append(present_key_value)
+        return self.lm_head(self.norm(x)), next_key_values
+
+
+class SoloLLM(nn.Module):
+    """Decoder-only GPT-style model used by SoloLLM experiments."""
+
+    def __init__(self, config: dict[str, Any]) -> None:
+        super().__init__()
+        self.model_type = "Transformer"
+
+        self.embed_dim = int(config["n_embd"])
+        self.n_heads = int(config["n_head"])
+        self.n_kv_heads = int(config.get("n_kv_head", config.get("num_key_value_heads", self.n_heads)))
+        self.n_layers = int(config["n_layer"])
+        self.dropout = float(config.get("dropout", 0.1))
+        self.vocab_size = int(config["vocab_size"])
+        self.max_seq_len = int(
+            config.get("max_seq_len", config.get("seq_length", config.get("n_positions", 512)))
+        )
+        self.rope_base = float(config.get("rope_base", 10000.0))
+        self.tie_weights = bool(config.get("tie_weights", True))
+        self.qkv_bias = bool(config.get("qkv_bias", False))
+        self.norm_type = str(config.get("norm_type", "layernorm")).lower()
+        self.mlp_type = str(config.get("mlp_type", "gelu")).lower()
+        raw_use_bias = config.get("use_bias", None)
+        self.use_bias = None if raw_use_bias is None else bool(raw_use_bias)
+        self.mlp_hidden_dim = (
+            int(config["mlp_hidden_dim"]) if config.get("mlp_hidden_dim") is not None else None
+        )
+        self.init_std = float(config.get("init_std", 0.02))
+        self.scale_residual_init = bool(config.get("scale_residual_init", False))
+
+        self.input_embed = nn.Embedding(self.vocab_size, self.embed_dim)
+        self.decoder = DecoderBlock(
+            embed_dim=self.embed_dim,
+            n_heads=self.n_heads,
+            n_layers=self.n_layers,
+            vocab_size=self.vocab_size,
+            dropout=self.dropout,
+            rope_base=self.rope_base,
+            qkv_bias=self.qkv_bias,
+            n_kv_heads=self.n_kv_heads,
+            norm_type=self.norm_type,
+            mlp_type=self.mlp_type,
+            use_bias=self.use_bias,
+            mlp_hidden_dim=self.mlp_hidden_dim,
+        )
+
+        self.apply(self._init_weights)
+
+        if self.tie_weights:
+            self.decoder.lm_head.weight = self.input_embed.weight
+
+    def _init_weights(self, module: nn.Module) -> None:
+        if isinstance(module, nn.Linear):
+            std = self.init_std
+            if self.scale_residual_init and getattr(module, "_is_residual_projection", False):
+                std = std / math.sqrt(2 * self.n_layers)
+            nn.init.normal_(module.weight, mean=0.0, std=std)
+            if module.bias is not None:
+                nn.init.zeros_(module.bias)
+        elif isinstance(module, nn.Embedding):
+            nn.init.normal_(module.weight, mean=0.0, std=self.init_std)
+        elif isinstance(module, nn.LayerNorm):
+            nn.init.ones_(module.weight)
+            if module.bias is not None:
+                nn.init.zeros_(module.bias)
+        elif isinstance(module, RMSNorm):
+            nn.init.ones_(module.weight)
+
+    def forward(self, input_ids: torch.Tensor) -> torch.Tensor:
+        if input_ids.dim() != 2:
+            raise ValueError(f"input_ids must have shape (batch, seq), got {tuple(input_ids.shape)}")
+
+        seq_len = input_ids.size(1)
+        if seq_len > self.max_seq_len:
+            raise ValueError(
+                f"input sequence length {seq_len} exceeds max_seq_len={self.max_seq_len}"
+            )
+
+        x = self.input_embed(input_ids)
+        return self.decoder(x)
+
+    def forward_with_cache(
+        self,
+        input_ids: torch.Tensor,
+        past_key_values: KVCache | None = None,
+        *,
+        cache_position: int | None = None,
+    ) -> tuple[torch.Tensor, KVCache]:
+        if input_ids.dim() != 2:
+            raise ValueError(f"input_ids must have shape (batch, seq), got {tuple(input_ids.shape)}")
+
+        seq_len = input_ids.size(1)
+        past_len = 0
+        if cache_position is not None:
+            past_len = int(cache_position)
+        elif past_key_values:
+            past_len = past_key_values[0][0].size(-2)
+        if past_len + seq_len > self.max_seq_len:
+            raise ValueError(
+                f"cached sequence length {past_len + seq_len} exceeds max_seq_len={self.max_seq_len}"
+            )
+
+        x = self.input_embed(input_ids)
+        return self.decoder.forward_with_cache(
+            x,
+            past_key_values=past_key_values,
+            cache_position=cache_position,
+        )
+
+    def allocate_kv_cache(
+        self,
+        batch_size: int,
+        max_length: int,
+        *,
+        device: torch.device | str | None = None,
+        dtype: torch.dtype | None = None,
+    ) -> KVCache:
+        if max_length > self.max_seq_len:
+            raise ValueError(f"max_length {max_length} exceeds max_seq_len={self.max_seq_len}")
+
+        weight = self.input_embed.weight
+        cache_device = torch.device(device) if device is not None else weight.device
+        cache_dtype = dtype if dtype is not None else weight.dtype
+        head_dim = self.embed_dim // self.n_heads
+        return [
+            (
+                torch.empty(batch_size, self.n_kv_heads, max_length, head_dim, device=cache_device, dtype=cache_dtype),
+                torch.empty(batch_size, self.n_kv_heads, max_length, head_dim, device=cache_device, dtype=cache_dtype),
+            )
+            for _ in range(self.n_layers)
+        ]
+
+    def num_parameters(self, trainable_only: bool = False) -> int:
+        return count_parameters(self, trainable_only=trainable_only)
+
+    def summary(self) -> dict[str, int | float | bool | str | None]:
+        return {
+            "model_type": self.model_type,
+            "parameter_count": self.num_parameters(),
+            "trainable_parameter_count": self.num_parameters(trainable_only=True),
+            "vocab_size": self.vocab_size,
+            "n_embd": self.embed_dim,
+            "n_layer": self.n_layers,
+            "n_head": self.n_heads,
+            "n_kv_head": self.n_kv_heads,
+            "max_seq_len": self.max_seq_len,
+            "dropout": self.dropout,
+            "rope_base": self.rope_base,
+            "tie_weights": self.tie_weights,
+            "qkv_bias": self.qkv_bias,
+            "norm_type": self.norm_type,
+            "mlp_type": self.mlp_type,
+            "use_bias": self.use_bias,
+            "mlp_hidden_dim": self.mlp_hidden_dim,
+            "init_std": self.init_std,
+            "scale_residual_init": self.scale_residual_init,
+        }
+
+
+# Backward-compatible names for older scripts/checkpoints that referred to the
+# reusable architecture as SoloGPT or SoloGPT_v2.
+SoloGPT = SoloLLM
+SoloGPT_v2 = SoloLLM

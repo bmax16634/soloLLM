@@ -3,8 +3,8 @@ set -uo pipefail
 
 ROOT="${ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 MIX_NAME="${MIX_NAME:-v5_smol_quality}"
-CONFIG_PATH="${CONFIG_PATH:-${ROOT}/sologpt_v5/config_proxy_smol_quality_60m_1024.json}"
-MANIFEST="${MANIFEST:-${ROOT}/sologpt_v5/data_mix_smol_quality_1b.yaml}"
+CONFIG_PATH="${CONFIG_PATH:-${ROOT}/configs/solollm-1.1-57m-baseproxy.json}"
+MANIFEST="${MANIFEST:-${ROOT}/data_mixes/solollm-1.1-smol-quality-1b.yaml}"
 DATA_DIR="${DATA_DIR:-${ROOT}/data/v5_smol_quality_1b_1024}"
 RUN_OUT_DIR="${RUN_OUT_DIR:-${ROOT}/outputs/sologpt_v5/proxy_smol_quality_60m_1b}"
 RUN_DIR="${RUN_DIR:-${ROOT}/outputs/sologpt_v5/proxy_smol_quality_60m_1b_logs}"
@@ -18,6 +18,13 @@ EVAL_OUT_DIR="${EVAL_OUT_DIR:-${ROOT}/outputs/eval_suites/${EVAL_RUN_NAME}}"
 EVAL_REPORT_DIR="${EVAL_REPORT_DIR:-${ROOT}/docs/results/${EVAL_RUN_NAME}}"
 EVAL_LOG_PATH="${EVAL_LOG_PATH:-${EVAL_OUT_DIR}/modern_eval.log}"
 EVAL_LABEL="${EVAL_LABEL:-solollm-v5-proxy-smol-quality-60m-1b}"
+
+EXPERIMENT_DISPLAY_NAME="${EXPERIMENT_DISPLAY_NAME:-V5 Smol-Quality 60M/1B Proxy}"
+EXPERIMENT_DESCRIPTION="${EXPERIMENT_DESCRIPTION:-This proxy is aimed at moving toward modern SmolLM2-style small-model quality instead of repeatedly tuning against GPT-2.}"
+PROXY_LABEL="${PROXY_LABEL:-v5 smol-quality 60M/1B proxy}"
+CONTROL_LABEL="${CONTROL_LABEL:-v4.2 57M/300M proxy}"
+CONTROL_TRAIN_DIR="${CONTROL_TRAIN_DIR:-${ROOT}/outputs/sologpt_v4/arch_proxy_v4_2_dropout0_v4_1_blend_57m_300m}"
+CONTROL_EVAL_DIR="${CONTROL_EVAL_DIR:-${ROOT}/outputs/eval_suites/v4_2_dropout0_v4_1_blend_proxy_57m}"
 
 TARGET_TOKENS="${TARGET_TOKENS:-1000000000}"
 MAX_EVAL_TOKENS="${MAX_EVAL_TOKENS:-2097152}"
@@ -61,7 +68,7 @@ PY
 }
 
 write_summary() {
-  python - "$ROOT" "$RUN_OUT_DIR" "$DATA_DIR" "$EVAL_OUT_DIR" "$SUMMARY_REPORT_PATH" <<'PY'
+  python - "$ROOT" "$RUN_OUT_DIR" "$DATA_DIR" "$EVAL_OUT_DIR" "$SUMMARY_REPORT_PATH" "$EXPERIMENT_DISPLAY_NAME" "$EXPERIMENT_DESCRIPTION" "$PROXY_LABEL" "$CONTROL_LABEL" "$CONTROL_TRAIN_DIR" "$CONTROL_EVAL_DIR" <<'PY'
 import json
 import math
 import sys
@@ -72,6 +79,12 @@ run_dir = Path(sys.argv[2])
 data_dir = Path(sys.argv[3])
 eval_dir = Path(sys.argv[4])
 summary_path = Path(sys.argv[5])
+experiment_display_name = sys.argv[6]
+experiment_description = sys.argv[7]
+proxy_label = sys.argv[8]
+control_label = sys.argv[9]
+control_train_dir = Path(sys.argv[10])
+control_eval_dir = Path(sys.argv[11])
 
 
 def fmt(value, precision=4):
@@ -111,12 +124,8 @@ def load_proxy_row(label, train_dir, eval_suite_dir):
 
 rows = []
 comparisons = [
-    (
-        "v4.2 57M/300M proxy",
-        root / "outputs/sologpt_v4/arch_proxy_v4_2_dropout0_v4_1_blend_57m_300m",
-        root / "outputs/eval_suites/v4_2_dropout0_v4_1_blend_proxy_57m",
-    ),
-    ("v5 smol-quality 60M/1B proxy", run_dir, eval_dir),
+    (control_label, control_train_dir, control_eval_dir),
+    (proxy_label, run_dir, eval_dir),
 ]
 for label, train_dir, eval_suite_dir in comparisons:
     if (train_dir / "metrics_summary.json").exists() and (eval_suite_dir / "external_modern_baselines.json").exists():
@@ -126,10 +135,9 @@ stats_path = data_dir / "build_stats.json"
 stats = json.loads(stats_path.read_text()) if stats_path.exists() else {}
 
 lines = [
-    "# V5 Smol-Quality 60M/1B Proxy Summary",
+    f"# {experiment_display_name} Summary",
     "",
-    "This is the first v5 proxy aimed at moving toward modern SmolLM2-style",
-    "small-model quality instead of repeatedly tuning against GPT-2.",
+    experiment_description,
     "",
     f"- Dataset: `{data_dir}`",
     f"- Train run: `{run_dir}`",
@@ -222,8 +230,8 @@ echo "pid=$$"
 
 if [ "$NOTIFY" = "1" ]; then
   notify \
-    "SoloLLM v5 proxy started" \
-    "60M/1B smol-quality proxy; dataset build if missing, then train and modern eval." \
+    "SoloLLM ${EXPERIMENT_DISPLAY_NAME} started" \
+    "${MIX_NAME}; dataset build if missing, then train and modern eval." \
     "Run: ${RUN_OUT_DIR}; log: ${MAIN_LOG_PATH}"
 fi
 
@@ -250,7 +258,7 @@ train_status=$?
 if [ "$train_status" -ne 0 ]; then
   body="$(status_body "$train_status")"
   if [ "$NOTIFY" = "1" ]; then
-    notify "SoloLLM v5 proxy train failed" "$body" "Log: ${TRAIN_LOG_PATH}"
+    notify "SoloLLM ${EXPERIMENT_DISPLAY_NAME} train failed" "$body" "Log: ${TRAIN_LOG_PATH}"
   fi
   exit "$train_status"
 fi
@@ -263,7 +271,7 @@ LOG_PATH="$EVAL_LOG_PATH" \
 V2_LABEL="$EVAL_LABEL" \
 V2_CHECKPOINT="${RUN_OUT_DIR}/final_model.pt" \
 V2_CONFIG="$CONFIG_PATH" \
-MODELS="v2 gpt2 pythia-70m=hf:EleutherAI/pythia-70m-deduped pythia-160m=hf:EleutherAI/pythia-160m-deduped smollm2-135m=hf:HuggingFaceTB/SmolLM2-135M smollm2-360m=hf:HuggingFaceTB/SmolLM2-360M" \
+MODELS="solollm gpt2 pythia-70m=hf:EleutherAI/pythia-70m-deduped pythia-160m=hf:EleutherAI/pythia-160m-deduped smollm2-135m=hf:HuggingFaceTB/SmolLM2-135M smollm2-360m=hf:HuggingFaceTB/SmolLM2-360M" \
 CONTEXT_LENGTH=1024 \
 MAX_WIKITEXT_TOKENS=0 \
 MAX_LAMBADA_EXAMPLES=0 \
@@ -286,9 +294,9 @@ echo "eval_status=$eval_status"
 body="$(status_body "$status")"
 if [ "$NOTIFY" = "1" ]; then
   if [ "$status" -eq 0 ]; then
-    notify "SoloLLM v5 proxy complete" "$body" "Summary: ${SUMMARY_REPORT_PATH}"
+    notify "SoloLLM ${EXPERIMENT_DISPLAY_NAME} complete" "$body" "Summary: ${SUMMARY_REPORT_PATH}"
   else
-    notify "SoloLLM v5 proxy eval failed" "$body" "Eval log: ${EVAL_LOG_PATH}"
+    notify "SoloLLM ${EXPERIMENT_DISPLAY_NAME} eval failed" "$body" "Eval log: ${EVAL_LOG_PATH}"
   fi
 fi
 

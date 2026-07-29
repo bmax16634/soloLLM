@@ -1,15 +1,35 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-ROOT="${ROOT:-/home/bmx/_projects/ariya/userdata/projects/soloLLM}"
+ROOT="${ROOT:-/home/bmx/_projects/soloLLM}"
+export PYTHONPATH="${ROOT}/src:${ROOT}:${PYTHONPATH:-}"
 MIX_NAME="${MIX_NAME:-quality_web}"
-MANIFEST="${MANIFEST:-${ROOT}/sologpt_v4/data_mix_${MIX_NAME}_300m.yaml}"
+if [ -z "${MANIFEST:-}" ]; then
+  case "$MIX_NAME" in
+    quality_web)
+      MANIFEST="${ROOT}/data_mixes/solollm-0.4-quality-web-300m.yaml"
+      ;;
+    smollm_reasoning)
+      MANIFEST="${ROOT}/data_mixes/solollm-0.4-reasoning-300m.yaml"
+      ;;
+    v4_1_blend)
+      MANIFEST="${ROOT}/data_mixes/solollm-0.4.1-broad-blend-300m.yaml"
+      ;;
+    v4_1b_blend)
+      MANIFEST="${ROOT}/data_mixes/solollm-0.4.1b-balanced-blend-300m.yaml"
+      ;;
+    *)
+      echo "Unknown MIX_NAME=${MIX_NAME}; set MANIFEST explicitly." >&2
+      exit 2
+      ;;
+  esac
+fi
 DATA_DIR="${DATA_DIR:-/home/bmx/_projects/soloLLM/data/v4_${MIX_NAME}_300m_1024}"
 RUN_OUT_DIR="${RUN_OUT_DIR:-${ROOT}/outputs/sologpt_v4/data_proxy_${MIX_NAME}_57m_300m}"
 RUN_DIR="${RUN_DIR:-${ROOT}/outputs/sologpt_v4/data_proxy_${MIX_NAME}}"
 LOG_PATH="${LOG_PATH:-${RUN_DIR}/data_proxy_${MIX_NAME}.log}"
 REPORT_PATH="${REPORT_PATH:-${ROOT}/docs/results/v4_data_proxy_${MIX_NAME}_300m.md}"
-CONFIG_PATH="${CONFIG_PATH:-${ROOT}/sologpt_v3/config_proxy_v3_style_60m_1024.json}"
+CONFIG_PATH="${CONFIG_PATH:-${ROOT}/configs/solollm-0.4-57m-v3-style-baseproxy.json}"
 TARGET_TOKENS="${TARGET_TOKENS:-300000000}"
 MAX_EVAL_TOKENS="${MAX_EVAL_TOKENS:-2097152}"
 EVAL_EVERY_TOKENS="${EVAL_EVERY_TOKENS:-50000000}"
@@ -252,7 +272,7 @@ echo "train_shards=$TRAIN_SHARDS"
 echo "val_shards=$VAL_SHARDS"
 echo "shard_dir=$SHARD_DIR"
 
-python -m sologpt_v2.pretrain \
+python -m solollm.train \
   --config "$CONFIG_PATH" \
   --output-dir "$RUN_OUT_DIR" \
   --shard-dir "$SHARD_DIR" \

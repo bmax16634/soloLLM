@@ -2,7 +2,7 @@
 set -uo pipefail
 
 ROOT="${ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-MANIFEST="${MANIFEST:-${ROOT}/sologpt_v4/data_mix_v4_2_dropout0_v4_1_blend_10b.yaml}"
+MANIFEST="${MANIFEST:-${ROOT}/data_mixes/solollm-1.0-broad-blend-10b.yaml}"
 OUT_DIR="${OUT_DIR:-${ROOT}/data/v4_2_dropout0_v4_1_blend_10b_1024}"
 LOG_PATH="${LOG_PATH:-${ROOT}/outputs/sologpt_v4/build_v4_2_dropout0_v4_1_blend_10b_1024.log}"
 TARGET_TOKENS="${TARGET_TOKENS:-10000000000}"

@@ -15,7 +15,7 @@ GQA_FIXTURE_CONFIG = REPO_ROOT / "tests" / "fixtures" / "v2_tiny_gqa_config.json
 
 def run_command(command):
     env = os.environ.copy()
-    env["PYTHONPATH"] = f"{REPO_ROOT}{os.pathsep}{env.get('PYTHONPATH', '')}"
+    env["PYTHONPATH"] = f"{REPO_ROOT / 'src'}{os.pathsep}{REPO_ROOT}{os.pathsep}{env.get('PYTHONPATH', '')}"
     return subprocess.run(
         command,
         cwd=REPO_ROOT,
@@ -42,7 +42,7 @@ def test_v2_training_dry_run_writes_artifacts_and_resumes(tmp_path):
         [
             sys.executable,
             "-m",
-            "sologpt_v2.pretrain",
+            "solollm.train",
             "--config",
             str(FIXTURE_CONFIG),
             "--shard-dir",
@@ -77,7 +77,7 @@ def test_v2_training_dry_run_writes_artifacts_and_resumes(tmp_path):
         [
             sys.executable,
             "-m",
-            "sologpt_v2.pretrain",
+            "solollm.train",
             "--config",
             str(FIXTURE_CONFIG),
             "--shard-dir",
@@ -110,7 +110,7 @@ def test_v2_modern_training_dry_run_writes_artifacts(tmp_path):
         [
             sys.executable,
             "-m",
-            "sologpt_v2.pretrain",
+            "solollm.train",
             "--config",
             str(MODERN_FIXTURE_CONFIG),
             "--shard-dir",
@@ -140,7 +140,7 @@ def test_v2_gqa_training_dry_run_writes_artifacts(tmp_path):
         [
             sys.executable,
             "-m",
-            "sologpt_v2.pretrain",
+            "solollm.train",
             "--config",
             str(GQA_FIXTURE_CONFIG),
             "--shard-dir",

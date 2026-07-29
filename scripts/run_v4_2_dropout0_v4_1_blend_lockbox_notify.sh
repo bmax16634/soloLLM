@@ -8,7 +8,7 @@ OUT_DIR="${OUT_DIR:-${ROOT}/outputs/eval_suites/${RUN_NAME}}"
 REPORT_DIR="${REPORT_DIR:-${ROOT}/docs/results/${RUN_NAME}}"
 LOG_PATH="${LOG_PATH:-${OUT_DIR}/lockbox_eval.log}"
 CHECKPOINT="${CHECKPOINT:-${ROOT}/outputs/sologpt_v4/arch_proxy_v4_2_dropout0_v4_1_blend_57m_300m/final_model.pt}"
-CONFIG="${CONFIG:-${ROOT}/sologpt_v4/config_proxy_v4_2_dropout0_v4_1_blend_57m_1024.json}"
+CONFIG="${CONFIG:-${ROOT}/configs/solollm-0.4.2-57m-broad-blend-baseproxy.json}"
 SHARD_DIR="${SHARD_DIR:-${ROOT}/data/tokenized_chunks}"
 SHARDS="${SHARDS:-58:60}"
 HELDOUT_MAX_BATCHES="${HELDOUT_MAX_BATCHES:-512}"
@@ -140,7 +140,7 @@ fi
 
 python -m eval.v3_eval_suite \
   --candidate-label "$LABEL" \
-  --candidate-loader v2 \
+  --candidate-loader solollm \
   --candidate-checkpoint "$CHECKPOINT" \
   --candidate-config "$CONFIG" \
   --output-dir "$OUT_DIR" \

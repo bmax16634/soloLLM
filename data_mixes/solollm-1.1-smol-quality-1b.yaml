@@ -1,0 +1,84 @@
+version: 1
+description: "SoloLLM research r5 proxy: SmolLM2-style quality mix for a 60M/1B gate"
+tokenizer: gpt2
+seq_length: 1024
+target_tokens: 1000000000
+shard_tokens: 8388608
+split:
+  train: 0.98
+  val: 0.01
+  test: 0.01
+filters:
+  min_chars: 200
+  max_chars: 200000
+  min_alpha_ratio: 0.45
+  max_repeated_line_fraction: 0.35
+  min_language_score: 0.65
+streaming:
+  shuffle_buffer: 0
+  seed: 2051
+sources:
+  - id: fineweb_edu_sample_10bt
+    enabled: true
+    weight: 0.30
+    dataset: HuggingFaceFW/fineweb-edu
+    config: sample-10BT
+    split: train
+    text_field: text
+    notes: "Primary high-quality educational web source; keep this as the anchor."
+  - id: smollm_fineweb_edu_dedup
+    enabled: true
+    weight: 0.18
+    dataset: HuggingFaceTB/smollm-corpus
+    config: fineweb-edu-dedup
+    split: train
+    text_field: text
+    notes: "Deduplicated SmolLM educational-web bridge toward modern small-model data."
+  - id: cosmopedia_v2
+    enabled: true
+    weight: 0.16
+    dataset: HuggingFaceTB/smollm-corpus
+    config: cosmopedia-v2
+    split: train
+    text_field: text
+    notes: "Synthetic textbook/explanation prose; capped to avoid the v4 reasoning-heavy regression."
+  - id: dclm_baseline
+    enabled: true
+    weight: 0.12
+    dataset: mlfoundations/dclm-baseline-1.0-parquet
+    config: null
+    split: train
+    text_field: text
+    notes: "Curated broad-web quality source to protect general LM transfer."
+  - id: wikipedia_en_20231101
+    enabled: true
+    weight: 0.10
+    dataset: wikimedia/wikipedia
+    config: 20231101.en
+    split: train
+    text_field: text
+    notes: "Reference prose for factual and encyclopedic style."
+  - id: finemath_4plus
+    enabled: true
+    weight: 0.08
+    dataset: HuggingFaceTB/finemath
+    config: finemath-4plus
+    split: train
+    text_field: text
+    notes: "Math/reasoning signal below v4.1b weight; useful only if BPB does not regress."
+  - id: fineweb_sample_10bt
+    enabled: true
+    weight: 0.04
+    dataset: HuggingFaceFW/fineweb
+    config: sample-10BT
+    split: train
+    text_field: text
+    notes: "Small general-web slice for distribution breadth."
+  - id: openwebtext
+    enabled: true
+    weight: 0.02
+    dataset: Skylion007/openwebtext
+    config: plain_text
+    split: train
+    text_field: text
+    notes: "Legacy distribution retained only as a tiny anchor."

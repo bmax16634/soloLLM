@@ -13,55 +13,25 @@ sync_excludes:
   - .git/
   - .cache/
   - __pycache__/
-  - '*.pyc'
+  - "*.pyc"
 
 repos:
-  sologpt-v3-150m-base:
+  solollm-1.0-152m-base:
     kind: model
     owner: bmax16634
-    hf_repo: bmax16634/sologpt-v3-150m-base
-    export_dir: outputs/huggingface/sologpt-v3-150m-base
-    clone_dir: /home/bmx/_hf_repos/models/bmax16634/sologpt-v3-150m-base
-    fileserver_mirror: /mnt/raid/hf_repos/models/bmax16634/sologpt-v3-150m-base.git
+    hf_repo: bmax16634/solollm-1.0-152m-base
+    export_dir: outputs/huggingface/solollm-1.0-152m-base
+    clone_dir: /home/bmx/_hf_repos/solollm/models/solollm-1.0-152m-base
+    fileserver_mirror: /mnt/raid/hf_repos/solollm/models/solollm-1.0-152m-base.git
     lfs: true
     publish_policy: approval_required
 
-  sologpt-v3-123m-base:
+  solollm-1.0-123m-base:
     kind: model
     owner: bmax16634
-    hf_repo: bmax16634/sologpt-v3-123m-base
-    export_dir: outputs/huggingface/sologpt-v3-123m-base
-    clone_dir: /home/bmx/_hf_repos/models/bmax16634/sologpt-v3-123m-base
-    fileserver_mirror: /mnt/raid/hf_repos/models/bmax16634/sologpt-v3-123m-base.git
+    hf_repo: bmax16634/solollm-1.0-123m-base
+    export_dir: outputs/huggingface/solollm-1.0-123m-base
+    clone_dir: /home/bmx/_hf_repos/solollm/models/solollm-1.0-123m-base
+    fileserver_mirror: /mnt/raid/hf_repos/solollm/models/solollm-1.0-123m-base.git
     lfs: true
-    publish_policy: approval_required
-
-  sologpt-v3-150m-demo:
-    kind: space
-    owner: bmax16634
-    hf_repo: bmax16634/sologpt-v3-150m-demo
-    export_dir: outputs/huggingface/sologpt-v3-150m-demo
-    clone_dir: /home/bmx/_hf_repos/spaces/bmax16634/sologpt-v3-150m-demo
-    fileserver_mirror: /mnt/raid/hf_repos/spaces/bmax16634/sologpt-v3-150m-demo.git
-    lfs: false
-    publish_policy: approval_required
-
-  sologpt-base-v1:
-    kind: model
-    owner: bmax16634
-    hf_repo: bmax16634/sologpt-base-v1
-    export_dir: outputs/huggingface/sologpt-base-v1-legacy
-    clone_dir: /home/bmx/_hf_repos/legacy/bmax16634/sologpt-base-v1
-    fileserver_mirror: /mnt/raid/hf_repos/legacy/bmax16634/sologpt-base-v1.git
-    lfs: true
-    publish_policy: approval_required
-
-  sologpt-base-v1-demo:
-    kind: space
-    owner: bmax16634
-    hf_repo: bmax16634/sologpt-base-v1-demo
-    export_dir: outputs/huggingface/sologpt-base-v1-demo-legacy
-    clone_dir: /home/bmx/_hf_repos/legacy/bmax16634/sologpt-base-v1-demo
-    fileserver_mirror: /mnt/raid/hf_repos/legacy/bmax16634/sologpt-base-v1-demo.git
-    lfs: false
     publish_policy: approval_required

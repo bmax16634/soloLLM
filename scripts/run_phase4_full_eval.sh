@@ -8,7 +8,7 @@ RUN_DIR="${RUN_DIR:-outputs/sologpt_v2/final_3b_modern_small_from300m}"
 SHARD_DIR="${SHARD_DIR:-/home/bmx/_projects/soloLLM/data/tokenized_chunks}"
 BACKEND_URL="${BACKEND_URL:-http://127.0.0.1:8787}"
 V2_CHECKPOINT="${V2_CHECKPOINT:-$RUN_DIR/final_model.pt}"
-V2_CONFIG="${V2_CONFIG:-sologpt_v2/config_modern_small.json}"
+V2_CONFIG="${V2_CONFIG:-configs/solollm-0.2-92m-base.json}"
 SHARDS="${SHARDS:-58:60}"
 BATCH_SIZE="${BATCH_SIZE:-16}"
 MAX_BATCHES="${MAX_BATCHES:-}"
@@ -139,7 +139,7 @@ fi
 
 echo "--- v2 eval start ---"
 nice -n 10 ionice -c2 -n7 python -m eval.eval \
-  --model v2 \
+  --model solollm \
   --checkpoint "$V2_CHECKPOINT" \
   --config "$V2_CONFIG" \
   --shard-dir "$SHARD_DIR" \
