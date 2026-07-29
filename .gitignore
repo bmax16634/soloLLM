@@ -21,7 +21,6 @@ __pycache__/
 docs/**
 !docs/
 !docs/EVALUATION_SUITE.md
-!docs/MODEL_NAMING.md
 !docs/RESULTS.md
 
 # Training logs
