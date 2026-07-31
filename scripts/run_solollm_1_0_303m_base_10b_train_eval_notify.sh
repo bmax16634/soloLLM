@@ -1,0 +1,384 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+ROOT="${ROOT:-/home/bmx/_projects/soloLLM}"
+export PYTHONPATH="${ROOT}/src:${ROOT}:${PYTHONPATH:-}"
+
+RUN_NAME="${RUN_NAME:-solollm-1.0-303m-base-10b}"
+MODEL_NAME="${MODEL_NAME:-SoloLLM-1.0-303M-Base}"
+MANIFEST="${MANIFEST:-${ROOT}/data_mixes/solollm-1.0-broad-blend-10b.yaml}"
+DATA_DIR="${DATA_DIR:-${ROOT}/data/solollm-1.0-broad-blend-10b-1024}"
+BUILD_LOG_PATH="${BUILD_LOG_PATH:-${ROOT}/outputs/solollm/${RUN_NAME}.dataset.log}"
+BUILD_TARGET_TOKENS="${BUILD_TARGET_TOKENS:-10000000000}"
+
+CONFIG_PATH="${CONFIG_PATH:-${ROOT}/configs/solollm-1.0-303m-base.json}"
+TRAIN_OUT_DIR="${TRAIN_OUT_DIR:-${ROOT}/outputs/solollm/${RUN_NAME}}"
+TRAIN_LOG_PATH="${TRAIN_LOG_PATH:-${ROOT}/outputs/solollm/${RUN_NAME}.train_eval.log}"
+EVAL_EVERY_TOKENS="${EVAL_EVERY_TOKENS:-250000000}"
+TOKENS_PER_CHECKPOINT="${TOKENS_PER_CHECKPOINT:-1000000000}"
+MAX_EVAL_TOKENS="${MAX_EVAL_TOKENS:-4194304}"
+DEVICE="${DEVICE:-cuda}"
+
+EVAL_LABEL="${EVAL_LABEL:-solollm-1.0-303m-base}"
+EVAL_OUT_DIR="${EVAL_OUT_DIR:-${ROOT}/outputs/eval_suites/${EVAL_LABEL}_gpt2_full_suite}"
+EVAL_REPORT_DIR="${EVAL_REPORT_DIR:-${EVAL_OUT_DIR}/reports}"
+EVAL_LOG_PATH="${EVAL_LOG_PATH:-${EVAL_OUT_DIR}/${EVAL_LABEL}_eval_suite_full.log}"
+
+METRICS_PATH="${TRAIN_OUT_DIR}/metrics.jsonl"
+MILESTONE_SENT_PATH="${TRAIN_OUT_DIR}/.milestones_sent"
+
+notify() {
+  local title="$1"
+  local body="$2"
+  local notes="${3:-}"
+  python - "$title" "$body" "$notes" <<'PY'
+import json
+import sys
+import urllib.error
+import urllib.request
+from datetime import datetime, timezone
+
+title, body, notes = sys.argv[1], sys.argv[2], sys.argv[3]
+payload = {
+    "title": title,
+    "body": body,
+    "dueAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+    "notes": notes,
+}
+request = urllib.request.Request(
+    "http://127.0.0.1:8787/api/reminders",
+    data=json.dumps(payload).encode("utf-8"),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+try:
+    with urllib.request.urlopen(request, timeout=10) as response:
+        print(response.read().decode("utf-8"))
+except (urllib.error.URLError, TimeoutError) as exc:
+    print(f"notification_error={exc}")
+PY
+}
+
+build_summary_body() {
+  local status="$1"
+  python - "$DATA_DIR" "$BUILD_LOG_PATH" "$status" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+out_dir = Path(sys.argv[1])
+log_path = Path(sys.argv[2])
+status = int(sys.argv[3])
+parts = [f"exit {status}"]
+stats_path = out_dir / "build_stats.json"
+if stats_path.exists():
+    stats = json.loads(stats_path.read_text())
+    progress = stats.get("progress", {})
+    accepted = int(progress.get("accepted_tokens", 0) or 0)
+    target = int(progress.get("target_tokens", 0) or 0)
+    elapsed = float(progress.get("elapsed_sec", 0.0) or 0.0)
+    tps = float(progress.get("tokens_per_sec", 0.0) or 0.0)
+    if target:
+        parts.append(f"{accepted / 1_000_000_000:.2f}B/{target / 1_000_000_000:.2f}B tokens")
+    if elapsed:
+        parts.append(f"{elapsed / 3600:.2f}h")
+    if tps:
+        parts.append(f"{tps / 1000:.0f}k tok/s")
+    ranges = stats.get("shard_ranges", {})
+    train = ranges.get("train", {})
+    val = ranges.get("val", {})
+    test = ranges.get("test", {})
+    if train:
+        parts.append(f"train {train.get('range')} ({int(train.get('tokens', 0)) / 1_000_000_000:.2f}B tok)")
+    if val and test:
+        parts.append(f"val {val.get('range')} test {test.get('range')}")
+parts.append(f"data: {out_dir}")
+parts.append(f"log: {log_path}")
+print("; ".join(parts))
+PY
+}
+
+read_split_info() {
+  python - "$DATA_DIR" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+data_dir = Path(sys.argv[1])
+splits = json.loads((data_dir / "splits.json").read_text())
+ranges = splits["shard_ranges"]
+print(ranges["train"]["range"])
+print(ranges["val"]["range"])
+print(splits["chunks_dir"])
+print(int(ranges["train"]["tokens"]))
+PY
+}
+
+training_summary_body() {
+  local status="$1"
+  python - "$TRAIN_OUT_DIR" "$TRAIN_LOG_PATH" "$status" <<'PY'
+import json
+import math
+import sys
+from pathlib import Path
+
+out_dir = Path(sys.argv[1])
+log_path = Path(sys.argv[2])
+status = int(sys.argv[3])
+summary_path = out_dir / "metrics_summary.json"
+metrics_path = out_dir / "metrics.jsonl"
+parts = []
+if summary_path.exists():
+    summary = json.loads(summary_path.read_text())
+    tokens = int(summary.get("tokens_total", 0) or 0)
+    processed = int(summary.get("tokens_processed_this_run", 0) or 0)
+    elapsed = float(summary.get("total_time_sec", 0.0) or 0.0)
+    avg_tps = float(summary.get("tokens_per_sec_avg", 0.0) or 0.0)
+    final_train = summary.get("final_train_loss")
+    best_val = summary.get("best_val_loss")
+    best_ppl = summary.get("best_val_ppl")
+    peak = summary.get("gpu_peak_mem_gb")
+    run_status = summary.get("status")
+    if run_status:
+        parts.append(f"status {run_status}")
+    parts.append(f"{tokens / 1_000_000_000:.2f}B total tok")
+    parts.append(f"{processed / 1_000_000_000:.2f}B new tok")
+    if elapsed:
+        parts.append(f"{elapsed / 3600:.2f}h")
+    if avg_tps:
+        parts.append(f"{avg_tps / 1000:.1f}k tok/s")
+    if final_train is not None:
+        parts.append(f"train loss {float(final_train):.4f}")
+    if best_val is not None:
+        text = f"best val {float(best_val):.4f}"
+        if best_ppl is not None and math.isfinite(float(best_ppl)):
+            text += f" / PPL {float(best_ppl):.2f}"
+        parts.append(text)
+    if peak:
+        parts.append(f"peak {float(peak):.1f}GB")
+elif metrics_path.exists():
+    parts.append("metrics_summary missing; metrics.jsonl exists")
+if not parts:
+    parts.append(f"exit status {status}")
+parts.append(f"log: {log_path}")
+print("; ".join(parts))
+PY
+}
+
+training_run_status() {
+  python - "$TRAIN_OUT_DIR" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+summary_path = Path(sys.argv[1]) / "metrics_summary.json"
+if not summary_path.exists():
+    print("missing")
+else:
+    print(json.loads(summary_path.read_text()).get("status", "unknown"))
+PY
+}
+
+monitor_milestones() {
+  mkdir -p "$TRAIN_OUT_DIR"
+  touch "$MILESTONE_SENT_PATH"
+  while true; do
+    python - "$METRICS_PATH" "$MILESTONE_SENT_PATH" "$TRAIN_LOG_PATH" "$TRAIN_TARGET_TOKENS" "$MODEL_NAME" <<'PY' |
+import json
+import math
+import sys
+from pathlib import Path
+
+metrics_path = Path(sys.argv[1])
+sent_path = Path(sys.argv[2])
+log_path = Path(sys.argv[3])
+target_tokens = int(sys.argv[4])
+model_name = sys.argv[5]
+thresholds = [1_000_000_000, 2_000_000_000, 4_000_000_000, 6_000_000_000, 8_000_000_000]
+if not metrics_path.exists():
+    raise SystemExit
+sent = {line.strip() for line in sent_path.read_text().splitlines() if line.strip()} if sent_path.exists() else set()
+latest = None
+last_val = None
+with metrics_path.open("r", encoding="utf-8") as f:
+    for line in f:
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if row.get("type") == "train":
+            latest = row
+        if row.get("type") == "validation":
+            last_val = row
+if not latest:
+    raise SystemExit
+tokens = int(latest.get("tokens_total", 0) or 0)
+tps = float(latest.get("tokens_per_sec", 0.0) or 0.0)
+train_loss = latest.get("train_loss")
+for threshold in thresholds:
+    key = str(threshold)
+    if tokens < threshold or key in sent:
+        continue
+    parts = [f"{threshold / 1_000_000_000:.0f}B tokens reached"]
+    parts.append(f"progress {100 * tokens / max(target_tokens, 1):.1f}%")
+    if tps:
+        remaining_sec = max(target_tokens - tokens, 0) / tps
+        parts.append(f"{tps / 1000:.1f}k tok/s")
+        parts.append(f"ETA train {remaining_sec / 3600:.1f}h")
+    if train_loss is not None:
+        parts.append(f"train loss {float(train_loss):.4f}")
+    if last_val:
+        val = float(last_val.get("val_loss", float("nan")))
+        ppl = last_val.get("val_ppl")
+        if math.isfinite(val):
+            text = f"last val {val:.4f}"
+            if ppl is not None and math.isfinite(float(ppl)):
+                text += f" / PPL {float(ppl):.2f}"
+            parts.append(text)
+    parts.append(f"log: {log_path}")
+    print(f"{key}\t{model_name} training milestone\t{'; '.join(parts)}")
+PY
+    while IFS=$'\t' read -r key title body; do
+      if [ -n "${key:-}" ] && [ -n "${title:-}" ] && [ -n "${body:-}" ]; then
+        notify "$title" "$body" "Run directory: ${TRAIN_OUT_DIR}"
+        echo "$key" >>"$MILESTONE_SENT_PATH"
+      fi
+    done
+    sleep 120
+  done
+}
+
+mkdir -p "$(dirname "$BUILD_LOG_PATH")" "$(dirname "$TRAIN_LOG_PATH")" "$TRAIN_OUT_DIR" "$EVAL_OUT_DIR" "$EVAL_REPORT_DIR"
+cd "$ROOT" || exit 2
+exec >>"$TRAIN_LOG_PATH" 2>&1
+
+echo "=== ${MODEL_NAME} 10B train plus full eval ==="
+echo "started_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+TZ=America/Phoenix date "+started_at_az=%Y-%m-%d %I:%M:%S %p AZ"
+echo "root=$ROOT"
+echo "manifest=$MANIFEST"
+echo "data_dir=$DATA_DIR"
+echo "build_log_path=$BUILD_LOG_PATH"
+echo "train_out_dir=$TRAIN_OUT_DIR"
+echo "train_log_path=$TRAIN_LOG_PATH"
+echo "config_path=$CONFIG_PATH"
+echo "eval_label=$EVAL_LABEL"
+echo "eval_out_dir=$EVAL_OUT_DIR"
+echo "eval_log_path=$EVAL_LOG_PATH"
+echo "pid=$$"
+
+if [ -f "$METRICS_PATH" ] || [ -f "${TRAIN_OUT_DIR}/final_model.pt" ]; then
+  notify "${MODEL_NAME} run not started" "Output directory already contains metrics or final_model.pt; log: ${TRAIN_LOG_PATH}" "Run directory: ${TRAIN_OUT_DIR}"
+  exit 2
+fi
+
+if [ ! -f "$DATA_DIR/splits.json" ]; then
+  echo "dataset_missing_building=1"
+  notify "${MODEL_NAME} dataset build started" \
+    "target ${BUILD_TARGET_TOKENS}; manifest ${MANIFEST}; output ${DATA_DIR}; log ${BUILD_LOG_PATH}" \
+    "Dataset: ${DATA_DIR}"
+  python scripts/build_v3_pilot_dataset.py \
+    --manifest "$MANIFEST" \
+    --output-dir "$DATA_DIR" \
+    --target-tokens "$BUILD_TARGET_TOKENS" \
+    --stats-every-docs 10000 >>"$BUILD_LOG_PATH" 2>&1
+  build_status=$?
+  echo "dataset_build_finished_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  TZ=America/Phoenix date "+dataset_build_finished_at_az=%Y-%m-%d %I:%M:%S %p AZ"
+  echo "dataset_build_exit_status=$build_status"
+  build_body="$(build_summary_body "$build_status")"
+  if [ "$build_status" -eq 0 ]; then
+    notify "${MODEL_NAME} dataset build complete" "$build_body" "Dataset: ${DATA_DIR}"
+  else
+    notify "${MODEL_NAME} dataset build failed" "$build_body" "Dataset: ${DATA_DIR}"
+    exit "$build_status"
+  fi
+else
+  echo "dataset_exists_reusing=1"
+fi
+
+mapfile -t split_info < <(read_split_info)
+TRAIN_SHARDS="${TRAIN_SHARDS:-${split_info[0]}}"
+VAL_SHARDS="${VAL_SHARDS:-${split_info[1]}}"
+SHARD_DIR="${SHARD_DIR:-${split_info[2]}}"
+TRAIN_TARGET_TOKENS="${TRAIN_TARGET_TOKENS:-${split_info[3]}}"
+
+echo "train_shards=$TRAIN_SHARDS"
+echo "val_shards=$VAL_SHARDS"
+echo "shard_dir=$SHARD_DIR"
+echo "train_target_tokens=$TRAIN_TARGET_TOKENS"
+echo "tokens_per_checkpoint=$TOKENS_PER_CHECKPOINT"
+
+notify \
+  "${MODEL_NAME} training started" \
+  "303.5M scale run; train shards ${TRAIN_SHARDS}; target ${TRAIN_TARGET_TOKENS} tokens; checkpoints every ${TOKENS_PER_CHECKPOINT}; log: ${TRAIN_LOG_PATH}" \
+  "Run directory: ${TRAIN_OUT_DIR}"
+
+monitor_milestones &
+monitor_pid=$!
+trap 'kill "$monitor_pid" 2>/dev/null || true' EXIT
+
+python -m solollm.train \
+  --config "$CONFIG_PATH" \
+  --output-dir "$TRAIN_OUT_DIR" \
+  --shard-dir "$SHARD_DIR" \
+  --train-shards "$TRAIN_SHARDS" \
+  --val-shards "$VAL_SHARDS" \
+  --max-tokens "$TRAIN_TARGET_TOKENS" \
+  --max-eval-tokens "$MAX_EVAL_TOKENS" \
+  --eval-every-tokens "$EVAL_EVERY_TOKENS" \
+  --tokens-per-checkpoint "$TOKENS_PER_CHECKPOINT" \
+  --log-every-opt-steps 100 \
+  --device "$DEVICE" \
+  --no-progress
+train_status=$?
+
+kill "$monitor_pid" 2>/dev/null || true
+wait "$monitor_pid" 2>/dev/null || true
+trap - EXIT
+
+echo "training_finished_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+TZ=America/Phoenix date "+training_finished_at_az=%Y-%m-%d %I:%M:%S %p AZ"
+echo "training_exit_status=$train_status"
+
+train_body="$(training_summary_body "$train_status")"
+run_status="$(training_run_status)"
+if [ "$train_status" -eq 0 ] && [ "$run_status" = "complete" ]; then
+  notify "${MODEL_NAME} training complete" "$train_body" "Run directory: ${TRAIN_OUT_DIR}"
+else
+  notify "${MODEL_NAME} training stopped" "$train_body" "Run directory: ${TRAIN_OUT_DIR}"
+  if [ "$train_status" -eq 0 ]; then
+    exit 130
+  fi
+  exit "$train_status"
+fi
+
+echo "=== starting ${MODEL_NAME} full eval suite ==="
+notify \
+  "${MODEL_NAME} full eval started" \
+  "candidate ${TRAIN_OUT_DIR}/final_model.pt; output ${EVAL_OUT_DIR}; log: ${EVAL_LOG_PATH}" \
+  "Run directory: ${EVAL_OUT_DIR}"
+
+ROOT="$ROOT" \
+LABEL="$EVAL_LABEL" \
+OUT_DIR="$EVAL_OUT_DIR" \
+REPORT_DIR="$EVAL_REPORT_DIR" \
+LOG_PATH="$EVAL_LOG_PATH" \
+CANDIDATE_CHECKPOINT="${TRAIN_OUT_DIR}/final_model.pt" \
+CANDIDATE_CONFIG="$CONFIG_PATH" \
+  bash "${ROOT}/scripts/run_v3_1b_full_eval_notify.sh"
+eval_status=$?
+
+echo "eval_finished_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+TZ=America/Phoenix date "+eval_finished_at_az=%Y-%m-%d %I:%M:%S %p AZ"
+echo "eval_exit_status=$eval_status"
+
+if [ "$eval_status" -eq 0 ]; then
+  notify "${MODEL_NAME} train plus eval complete" "training and full eval completed; eval log: ${EVAL_LOG_PATH}; train log: ${TRAIN_LOG_PATH}" "Run directory: ${TRAIN_OUT_DIR}"
+else
+  notify "${MODEL_NAME} full eval failed" "training completed but eval failed with exit ${eval_status}; eval log: ${EVAL_LOG_PATH}; train log: ${TRAIN_LOG_PATH}" "Run directory: ${EVAL_OUT_DIR}"
+fi
+
+exit "$eval_status"
