@@ -1,0 +1,21 @@
+{
+  "project": "soloLLM",
+  "artifactRoot": "/mnt/raid/26/aimlcs/project-artifacts/soloLLM",
+  "capturedAt": "2026-08-06T19-26-22Z",
+  "artifacts": {
+    "docs": {
+      "remotePath": "/mnt/raid/26/aimlcs/project-artifacts/soloLLM/docs/",
+      "sourcePath": "/home/bmx/_projects/soloLLM/docs/",
+      "files": 55,
+      "bytes": 136660,
+      "purpose": "Internal project docs, research notes, result summaries, and generated docs kept off GitHub."
+    },
+    "outputs": {
+      "remotePath": "/mnt/raid/26/aimlcs/project-artifacts/soloLLM/outputs/",
+      "sourcePath": "/home/bmx/_projects/soloLLM/outputs/",
+      "files": 443,
+      "bytes": 29833051,
+      "purpose": "Small non-checkpoint experiment outputs: eval summaries, configs, logs, reports, and export metadata. Model weights are not stored here."
+    }
+  }
+}
