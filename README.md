@@ -17,11 +17,6 @@ SoloLLM started out as a challenge to see if I could train a base model from scr
 - `SoloLLM-1.0-123M-Base` is slightly smaller than GPT-2 small. It wins the normalized multiple-choice suite and several external checks, but it does not beat GPT-2 small across every metric.
 -  Data mix seemed to have the largest impact on model performance. A reasoning-heavy mix improved some multiple-choice and repetition metrics, but hurt broad language-modeling perplexity. A broader blend with dropout `0.0` produced the best overall result.
 
-
-## Documents
-
-- [Evaluation Suite](docs/EVALUATION_SUITE.md)
-- [Results Summary](docs/RESULTS.md)
 ---
 Benjamin Maxwell
 
